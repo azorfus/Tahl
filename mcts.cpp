@@ -4,8 +4,13 @@
 #include "chess.hpp"
 
 
-class MCTSNode{
-   public:
+class MCTS {
+public:
+    MCTSNode* root;
+}
+
+class MCTSNode {
+public:
     bool terminal;
     bool turn; // turn=true for WHITE, turn=false for BLACK
     chess::Board state;
@@ -63,10 +68,13 @@ class MCTSNode{
         new_state.makeMove(move);
 
         MCTSNode* child = new MCTSNode(this, new_state, move);
+        
+        /* Not rolling out inside the expansion function anymore
         double w = child->rollout();
         child->simulations++;
         child->score += w;
         children->push_back(child);
+        */
     }
 
     // By returning the score through rollout(), backpropagate becomes redundant
@@ -125,5 +133,5 @@ class MCTSNode{
         }
 
         return best;
-    }
+    } 
 };
