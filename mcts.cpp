@@ -6,6 +6,7 @@
 class MCTSNode{
    public:
     bool terminal;
+    bool turn; // turn=true for WHITE, turn=false for BLACK
     chess::Board state;
     MCTSNode *parent;
     chess::Move action;
@@ -20,6 +21,7 @@ class MCTSNode{
             children->reserve(32);
             actions_to_try(state);
             terminal = is_terminal(state);
+            turn = state.sideToMove() == chess::Color::WHITE;
         }
 
     ~MCTSNode(){
@@ -78,9 +80,43 @@ class MCTSNode{
         }
 
         score = evaluate(sim_state);
+
+        backpropagate(score);
     }
 
-    void backpropagate() {
-        return;
+    void backpropagate(double result) {
+        MCTSNode* node = this;
+
+        while (node->parent) {
+            node->simulations++;
+            node->score += result;
+            node = node->parent;
+        }
+    }
+
+    bool is_fully_expanded() {
+        return terminal || untried_actions.empty();
+    }
+
+    MCTSNode* best_child(double c) {
+        if (children->empty()) return nullptr;
+
+        double ucb, m=-1;
+        MCTSNode* best = nullptr;
+
+        for (MCTSNode *child : *children){
+            double q = child->score / ((double) child->simulations);
+            ucb = c * sqrt(log(((double) this->simulations)) / ((double) child->simulations));
+
+            if (turn) ucb += q;
+            else ucb -= q;
+            
+            if (ucb > m){
+                m = ucb;
+                best = child;
+            }
+        }
+
+        return best;
     }
 };
