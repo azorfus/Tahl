@@ -3,7 +3,7 @@
 #include "include/chess.hpp"
 
 
-class MCTSNode{
+class MCTSNode {
     public:
         bool terminal;
         unsigned int simulations;
@@ -37,6 +37,18 @@ class MCTSNode{
                    state.isRepetition() || state.isHalfMoveDraw() || 
                    (state.getHalfMoveDrawType().first==chess::GameResultReason::CHECKMATE) || 
                    (state.getHalfMoveDrawType().first==chess::GameResultReason::STALEMATE);
+        }
+        
+        int evaluate(chess::Board state) {
+            
+            if (state.isInsufficientMaterial() || state.isRepetition() || state.isHalfMoveDraw()
+                || (state.getHalfMoveDrawType().first==chess::GameResultReason::STALEMATE)) {
+                return 0;
+            }
+            else if(state.getHalfMoveDrawType().first==chess::GameResultReason::CHECKMATE) {
+                if(state.sideToMove == Color::White) return 1;
+                else return -1;
+            }
 
         }
 
@@ -58,7 +70,23 @@ class MCTSNode{
         }
 
         void rollout() {
+
+            chess:Board sim_state = state;
+
+            while(!is_terminal(sim_state)) {
+                chess::Movelist moves;
+                chess::movegen::legalmoves(moves, sim_state);
+                if(moves.empty()) break;
+                    chess::Move random_move = moves[rand() % moves.size()];
+                    sim_state.makeMove(random_move);
+                    
+            this->score = evaluate(sim_state);            
+
+        }
+        
+        void backpropagate() {
             return;
-       }
+        }
+        
 
 };
