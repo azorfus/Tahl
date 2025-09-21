@@ -1,5 +1,7 @@
 #include <iostream>
 #include <cmath>
+#include <vector>
+#include <thread>
 #include <unordered_map>
 #include "chess.hpp"
 
@@ -16,23 +18,44 @@ public:
         delete root;   
     }
 
+    void summon_threads(int threads) {
+        std::vector<std::thread> daemons;
+        sd::vector<MCTS*> mcts_trees;
+
+        for(int t = 0; t < threads; t++) {
+            mcts_trees.push_back(new MCTS(root->state));
+            daemons.push_back(std::thread(&MCTS::run_search,
+                              mcts_trees.back(), 10 /*The number of iterations each thread*/));
+        }
+
+        /* what next? */
+    }
+
     void run_search(int iterations) {
         for(int i = 0; i < iterations; i++) {
             
             MCTSNode* walker = root;
 
             // Selection
-            while(!walker->untried_actions.empty()) {
+            while(!walker->is_fully_expanded()) {
                 walker = walker->best_child();
             }
 
             // Expansion
-            if(!walker->is_terminal) {
+            if(!walker->is_fully_expanded) {
                 walker->expand();
                 if(!walker->children->empty()) {
                     walker = walker->children->back();
                 }
-            }   
+            }
+            
+            // Rollout
+            double result = walker->rollout();
+            walker->simulations++;
+            walker->score += result;
+
+            // Backpropagation
+            // nevermind
         }
     }
 }
