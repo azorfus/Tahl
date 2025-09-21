@@ -7,6 +7,26 @@
 class MCTS {
 public:
     MCTSNode* root;
+
+    MCTS(chess::Board state) {
+        root = new MCTSNode(nullptr, state, chess::Move());
+    }
+
+    ~MCTS() {
+        delete root;   
+    }
+
+    void run_search(int iterations) {
+        for(int i = 0; i < iterations; i++) {
+            
+            MCTSNode* walker = root;
+
+            // Selection
+            while(!walker->untried_actions.empty()) {
+                walker = walker->best_child();
+            }
+        }
+    }
 }
 
 class MCTSNode {
@@ -77,7 +97,6 @@ public:
         */
     }
 
-    // By returning the score through rollout(), backpropagate becomes redundant
     double rollout() {
         chess::Board sim_state = state;
 
@@ -95,8 +114,6 @@ public:
         score = evaluate(sim_state);
 
         return score;
-
-        //backpropagate(score);
     }
 
     // void backpropagate(double result) {
