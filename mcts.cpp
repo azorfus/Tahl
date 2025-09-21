@@ -25,6 +25,14 @@ public:
             while(!walker->untried_actions.empty()) {
                 walker = walker->best_child();
             }
+
+            // Expansion
+            if(!walker->is_terminal) {
+                walker->expand();
+                if(!walker->children->empty()) {
+                    walker = walker->children->back();
+                }
+            }   
         }
     }
 }
