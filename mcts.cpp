@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include <unordered_map>
 #include "chess.hpp"
 
@@ -60,12 +61,16 @@ class MCTSNode{
         untried_actions = new_moves_list;
         chess::Board new_state = state;
         new_state.makeMove(move);
+
         MCTSNode* child = new MCTSNode(this, new_state, move);
-        child->rollout();
+        double w = child->rollout();
+        child->simulations++;
+        child->score += w;
         children->push_back(child);
     }
 
-    void rollout() {
+    // By returning the score through rollout(), backpropagate becomes redundant
+    double rollout() {
         chess::Board sim_state = state;
 
         while(!is_terminal(sim_state)) {
@@ -81,18 +86,20 @@ class MCTSNode{
 
         score = evaluate(sim_state);
 
-        backpropagate(score);
+        return score;
+
+        //backpropagate(score);
     }
 
-    void backpropagate(double result) {
-        MCTSNode* node = this;
+    // void backpropagate(double result) {
+    //     MCTSNode* node = this;
 
-        while (node->parent) {
-            node->simulations++;
-            node->score += result;
-            node = node->parent;
-        }
-    }
+    //     while (node) {
+    //         node->simulations++;
+    //         node->score += result;
+    //         node = node->parent;
+    //     }
+    // }
 
     bool is_fully_expanded() {
         return terminal || untried_actions.empty();
@@ -106,7 +113,7 @@ class MCTSNode{
 
         for (MCTSNode *child : *children){
             double q = child->score / ((double) child->simulations);
-            ucb = c * sqrt(log(((double) this->simulations)) / ((double) child->simulations));
+            ucb = c * sqrt((((double) this->simulations)) / ((double) child->simulations));
 
             if (turn) ucb += q;
             else ucb -= q;
