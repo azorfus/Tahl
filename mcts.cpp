@@ -37,25 +37,22 @@ public:
             MCTSNode* walker = root;
 
             // Selection
-            while(!walker->is_fully_expanded()) {
+            while(!walker->children->empty() && walker->is_fully_expanded()) {
                 walker = walker->best_child();
             }
-
-            // Expansion
-            if(!walker->is_fully_expanded) {
-                walker->expand();
-                if(!walker->children->empty()) {
-                    walker = walker->children->back();
-                }
-            }
             
-            // Rollout
-            double result = walker->rollout();
-            walker->simulations++;
-            walker->score += result;
+            // Expansion
+            if(!walker->is_terminal()) {
+                walker = walker->expand();
+            
+                // Rollout
+                double result = walker->rollout();
+                walker->simulations++;
+                walker->score += result;
+            }
 
             // Backpropagation
-            // nevermind
+            walker->backpropagate(walker->score);
         }
     }
 }
@@ -106,7 +103,7 @@ public:
         return 0;
     }
 
-    void expand(){
+    MCTSNode* expand(){
         chess::Move move = untried_actions.back();
         chess::Movelist new_moves_list;
 
@@ -119,6 +116,10 @@ public:
         new_state.makeMove(move);
 
         MCTSNode* child = new MCTSNode(this, new_state, move);
+
+        children->push_back(child);
+
+        return child;
         
         /* Not rolling out inside the expansion function anymore
         double w = child->rollout();
@@ -182,4 +183,14 @@ public:
 
         return best;
     } 
+
+    void backpropagate(double result) {
+        MCTSNode* node = this;
+
+        while(node) {
+            node->simulations++;
+            node->score += result;
+            node = node->parent;
+        }
+    }
 };
