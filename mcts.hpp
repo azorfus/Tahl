@@ -4,42 +4,8 @@
 #include <thread>
 #include <unordered_map>
 #include "chess.hpp"
-
-
-class MCTSTree {
-public:
-    MCTSNode* root;
-
-    MCTSTree(chess::Board state) {
-        root = new MCTSNode(nullptr, state, chess::Move());
-    }
-
-    ~MCTSTree() {
-        delete root;   
-    }
-
-    void run_search(int iterations) {
-        for(int i = 0; i < iterations; i++) {
-            
-            MCTSNode* walker = root;
-
-            // Selection
-            while(!walker->children->empty() && walker->is_fully_expanded()) {
-                walker = walker->best_child(/* what number ??? */);
-            }
-            
-            // Expansion
-            if(!walker->is_terminal(walker->state)) {
-                walker = walker->expand();
-            
-                // Rollout
-                double result = walker->rollout();
-                walker->simulations++;
-                walker->score += result;
-            }
-        }
-    }
-};
+#define exploitation_parameter 1.414
+#define num_iterations 2000
 
 class MCTSNode {
 public:
@@ -137,7 +103,7 @@ public:
 
         for (MCTSNode *child : *children){
             double q = child->score / ((double) child->simulations);
-            ucb = c * sqrt((((double) this->simulations)) / ((double) child->simulations));
+            ucb = c * sqrt(log(((double) this->simulations)) / ((double) child->simulations));
 
             if (turn) ucb += q;
             else ucb -= q;
@@ -151,8 +117,6 @@ public:
         return best;
     } 
 
-    /* REDUNDANT FOR OUR CASE:
-
     void backpropagate(double result) {
         MCTSNode* node = this;
 
@@ -161,5 +125,41 @@ public:
             node->score += result;
             node = node->parent;
         }
-    } */
+    } 
+};
+
+class MCTSTree {
+public:
+    MCTSNode* root;
+
+    MCTSTree(chess::Board state) {
+        root = new MCTSNode(nullptr, state, chess::Move());
+    }
+
+    ~MCTSTree() {
+        delete root;   
+    }
+
+    chess::Move run_search(int iterations) {
+        for(int i = 0; i < iterations; i++) {
+            std::cout<<i<<std::endl;
+            MCTSNode* walker = root;
+
+            // Selection
+            while(!walker->terminal && walker->is_fully_expanded()) {
+                walker = walker->best_child(exploitation_parameter);
+            }
+            
+            // Expansion
+            if(!walker->is_terminal(walker->state)) {
+                walker = walker->expand();
+            }
+
+            // Rollout
+            double result = walker->rollout();
+            walker->backpropagate(result);
+        }
+
+        return root->best_child(0)->action;
+    }
 };
