@@ -25,11 +25,11 @@ public:
 
             // Selection
             while(!walker->children->empty() && walker->is_fully_expanded()) {
-                walker = walker->best_child();
+                walker = walker->best_child(/* what number ??? */);
             }
             
             // Expansion
-            if(!walker->is_terminal()) {
+            if(!walker->is_terminal(walker->state)) {
                 walker = walker->expand();
             
                 // Rollout
@@ -39,7 +39,7 @@ public:
             }
         }
     }
-}
+};
 
 class MCTSNode {
 public:
