@@ -18,11 +18,11 @@ public:
         for(int t = 0; t < threads; t++) {
             mcts_trees.push_back(std::make_unique<MCTSTree>(root->state));
             daemons.push_back(std::thread(&MCTSTree::run_search,
-                              mcts_trees.back(), 100 /*The number of iterations each thread*/ ));
+                              mcts_trees.back().get(), 100 /*The number of iterations each thread*/ ));
         }
 
-        for(int t = 0; t < threads; t++) {
-            daemons[t].join();
+        for(auto &daemon : daemons) {
+            if(daemon.joinable()) daemon.join();
         }
 
         // Combine results from all threads
