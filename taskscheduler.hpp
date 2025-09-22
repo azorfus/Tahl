@@ -1,9 +1,3 @@
-#include <iostream>
-#include <cmath>
-#include <vector>
-#include <thread>
-#include <unordered_map>
-#include "chess.hpp"
 #include "mcts.hpp"
 
 
