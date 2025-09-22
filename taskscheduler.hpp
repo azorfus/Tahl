@@ -13,7 +13,7 @@ public:
 
     void summon_threads(int threads) {
         std::vector<std::thread> daemons;
-        std::vector<MCTSTree> mcts_trees;
+        std::vector<std::unique_ptr<MCTSTree>> mcts_trees;
 
         for(int t = 0; t < threads; t++) {
             mcts_trees.push_back(std::make_unique<MCTSTree>(root->state));
