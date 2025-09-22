@@ -47,7 +47,10 @@ public:
         }
 
         // Combine results from all threads
-        
+        for(auto &child : root->children) {
+            root->score += child->score;
+            root->simulations += child->simulations;
+        }
         
     }
 };
