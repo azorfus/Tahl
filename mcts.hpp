@@ -142,7 +142,7 @@ public:
 
     chess::Move run_search(int iterations) {
         for(int i = 0; i < iterations; i++) {
-            std::cout<<i<<std::endl;
+
             MCTSNode* walker = root;
 
             // Selection
@@ -163,3 +163,4 @@ public:
         return root->best_child(0)->action;
     }
 };
+
