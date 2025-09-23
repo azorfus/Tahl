@@ -3,7 +3,7 @@
 #include <vector>
 #include <thread>
 #include <unordered_map>
-#include "chess.hpp"
+#include "include/chess.hpp"
 #define exploitation_parameter 1.414
 #define num_iterations 2000
 
@@ -11,13 +11,16 @@ class MCTSNode {
 public:
     bool terminal;
     bool turn; // turn=true for WHITE, turn=false for BLACK
-    chess::Board state;
-    MCTSNode *parent;
-    chess::Move action;
-    std::vector<MCTSNode*> *children;
     unsigned int simulations;
     double score;
+    bool chosen = false;
+
+    std::vector<MCTSNode*> *children;
+    chess::Board state;
+    chess::Move action;
     chess::Movelist untried_actions;
+
+    MCTSNode *parent;
 
     MCTSNode(MCTSNode *parent, chess::Board state, chess::Move action)
         : parent(parent), state(state), action(action), score(0.0), simulations(0){
@@ -140,7 +143,7 @@ public:
         delete root;   
     }
 
-    chess::Move run_search(int iterations) {
+    void run_search(int iterations) {
         for(int i = 0; i < iterations; i++) {
 
             MCTSNode* walker = root;
@@ -157,10 +160,8 @@ public:
 
             // Rollout
             double result = walker->rollout();
-            walker->backpropagate(result);
+            
         }
-
-        return root->best_child(0)->action;
     }
 };
 

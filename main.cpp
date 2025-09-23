@@ -1,6 +1,7 @@
 #include <iostream>
-#include "mcts.hpp"
+#include "taskscheduler.hpp"
 
+/*
 int main(){
     chess::Board board = chess::Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     MCTSTree *tree = new MCTSTree(board);
@@ -24,4 +25,14 @@ int main(){
             turn = true;
         }
     }
+}
+*/
+
+int main() {
+    chess::Board board = chess::Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    MCTSNode* root = new MCTSNode(nullptr, board, chess::Move());
+    TaskScheduler scheduler(root);
+
+    MCTSNode* best = scheduler.threaded_evaluate(4);
+    std::cout << "Best move found: " << chess::uci::moveToUci(best->action) << std::endl;
 }

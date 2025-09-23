@@ -11,7 +11,7 @@ public:
 
     MCTSNode* root;
 
-    /* I don't this this version is correct 
+    /* I don't think this version is correct 
     void summon_threads(int threads) {
         std::vector<std::thread> daemons;
         std::vector<std::unique_ptr<MCTSTree>> mcts_trees;
@@ -32,7 +32,7 @@ public:
     }
     */
 
-    void summon_threads(int threads) {
+    MCTSNode* threaded_evaluate(int threads) {
         std::vector<std::thread> daemons;
         std::vector<MCTSTree*> mcts_trees;
 
@@ -45,8 +45,30 @@ public:
         for(auto &daemon : daemons) {
             if(daemon.joinable()) daemon.join();
         }
+
+        MCTSNode* best = best_child(mcts_trees);
+
+        clean_up(mcts_trees);
+        
+        return best;
         
     }
 
-    void best_child() {/*write code to find max score from all the children*/}
+    void clean_up(std::vector<MCTSTree*> mcts_trees) {
+        for(auto tree : mcts_trees) {
+            delete tree;
+        }
+    }
+
+    MCTSNode* best_child(std::vector<MCTSTree*> mcts_trees) {
+        MCTSNode* best = mcts_trees[0]->root;
+
+        for(auto tree : mcts_trees) {
+            if(best->score < tree->root->score) {
+                best = tree->root;
+            }
+        }
+
+        return best;
+    }
 };
