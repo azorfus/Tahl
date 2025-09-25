@@ -33,6 +33,8 @@ int main() {
     MCTSNode* root = new MCTSNode(nullptr, board, chess::Move());
     TaskScheduler scheduler(root);
 
-    MCTSNode* best = scheduler.threaded_evaluate(4);
-    std::cout << "Best move found: " << chess::uci::moveToUci(best->action) << std::endl;
+    // MCTSNode* best = scheduler.threaded_evaluate(4);
+    int best_index = scheduler.threaded_evaluate(4);
+    std::cout << "Best index: " << best_index << std::endl;
+    // std::cout << "Best move found: " << chess::uci::moveToUci(best->action) << std::endl;
 }

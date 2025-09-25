@@ -92,22 +92,23 @@ public:
 
     MCTSNode* root;
 
-    MCTSNode* threaded_evaluate(int threads) {
+    int threaded_evaluate(int threads) {
         std::vector<std::thread> daemons;
         std::vector<MCTSTree*> mcts_trees;
 
         ThreadPool t_pool(threads);
 
-        for(int t = 0; t < root->children->size(); t++) {
-            mcts_trees.push_back(new MCTSTree(root->children->at(t)->state));
+        for(int t = 0; t < threads; t++) {
+            mcts_trees.push_back(new MCTSTree(root->state));
             t_pool.do_job(std::bind(&MCTSTree::run_search, mcts_trees.back(), mcts_trees.back()->root, 100));
         }
 
-        MCTSNode* best = best_child(mcts_trees);
+        int best_index = indexof_best_child(mcts_trees);
+
 
         clean_up(mcts_trees);
         
-        return best;
+        return best_index;
         
     }
 
@@ -117,15 +118,20 @@ public:
         }
     }
 
-    MCTSNode* best_child(std::vector<MCTSTree*> mcts_trees) {
+    int indexof_best_child(const std::vector<MCTSTree*>& mcts_trees) {
+        if (mcts_trees.empty()) return -1;
+
+        int best_index = 0;
         MCTSNode* best = mcts_trees[0]->root;
 
-        for(auto tree : mcts_trees) {
-            if(best->score < tree->root->score) {
-                best = tree->root;
+        for (size_t i = 1; i < mcts_trees.size(); ++i) {
+            if (mcts_trees[i]->root->score > best->score) {
+                best = mcts_trees[i]->root;
+                best_index = i;
             }
         }
 
-        return best;
+        return best_index;
     }
+
 };
