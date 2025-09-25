@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
-#include <thread>
 #include <unordered_map>
 #include "include/chess.hpp"
 #define exploitation_parameter 1.414
