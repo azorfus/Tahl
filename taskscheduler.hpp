@@ -6,6 +6,9 @@ class ThreadPool {
 
     std::vector <std::thread> workers;
     std::mutex queue_mutex;
+    std::queue <std::function <void (void)>> jobs;
+    std::condition_variable cond_var;
+    bool shutdown_;
 
     ThreadPool(int threads) {
         workers.reserve(threads);
@@ -14,23 +17,64 @@ class ThreadPool {
         }
     }
 
-    ~ThreadPool() {
+    ~ThreadPool ()
+    {
+        {
+            // Unblock any threads and tell them to stop
+            std::unique_lock <std::mutex> l (queue_mutex);
+
+            shutdown_ = true;
+            cond_var.notify_all();
+        }
+
+        // Wait for all threads to stop
+        std::cerr << "Joining threads" << std::endl;
+        for (auto& thread : workers)
+            thread.join();
+    }
+
+    void doJob (std::function <void (void)> func)
+    {
+        // Place a job on the queu and unblock a thread
+        std::unique_lock <std::mutex> l (queue_mutex);
+
+        jobs.emplace (std::move (func));
+        cond_var.notify_one();
+    }
+
+    protected:
+
+    void threadEntry (int i)
+    {
+        std::function <void (void)> job;
+
+        while (1)
+        {
+            {
+                std::unique_lock <std::mutex> l (queue_mutex);
+
+                while (! shutdown_ && jobs.empty())
+                    cond_var.wait (l);
+
+                if (jobs.empty ())
+                {
+                    // No jobs to do and we are shutting down
+                    std::cerr << "Thread " << i << " terminates" << std::endl;
+                    return;
+                 }
+
+                std::cerr << "Thread " << i << " does a job" << std::endl;
+                job = std::move (jobs.front ());
+                jobs.pop();
+            }
+
+            // Do the job without holding any locks
+            job ();
+        }
 
     }
+
 }
-
-class TaskScheduler {
-    TaskScheduler() {
-
-    }
-
-    ~TaskScheduler() {
-
-    }
-
-
-
-};
 
 
 
