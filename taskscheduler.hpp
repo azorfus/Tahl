@@ -1,6 +1,10 @@
 #include "mcts.hpp"
 #include <thread>
 #include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <functional>
+#include <chrono>
 
 class ThreadPool {
 
