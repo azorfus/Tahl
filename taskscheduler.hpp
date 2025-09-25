@@ -4,9 +4,10 @@
 #include <condition_variable>
 #include <queue>
 #include <functional>
-#include <chrono>
 
 class ThreadPool {
+
+public:
 
     std::vector <std::thread> workers;
     std::mutex queue_mutex;
@@ -37,12 +38,12 @@ class ThreadPool {
             thread.join();
     }
 
-    void do_job (std::function <void (void)> func)
+    void do_job (std::function <void(void)> func)
     {
-        // Place a job on the queu and unblock a thread
+        // Place a job on the queue and unblock a thread
         std::unique_lock <std::mutex> l (queue_mutex);
 
-        jobs.emplace (std::move (func));
+        jobs.emplace (std::move(func));
         cond_var.notify_one();
     }
 
@@ -50,17 +51,17 @@ class ThreadPool {
 
     void thread_entry (int i)
     {
-        std::function <void (void)> job;
+        std::function <void(void)> job;
 
         while (1)
         {
             {
                 std::unique_lock <std::mutex> l (queue_mutex);
 
-                while (! shutdown_ && jobs.empty())
-                    cond_var.wait (l);
+                while (!shutdown_ && jobs.empty())
+                    cond_var.wait(l);
 
-                if (jobs.empty ())
+                if (jobs.empty())
                 {
                     // No jobs to do and we are shutting down
                     std::cerr << "Thread " << i << " terminates" << std::endl;
@@ -68,7 +69,7 @@ class ThreadPool {
                  }
 
                 std::cerr << "Thread " << i << " does a job" << std::endl;
-                job = std::move (jobs.front ());
+                job = std::move (jobs.front());
                 jobs.pop();
             }
 
@@ -97,9 +98,9 @@ public:
 
         ThreadPool t_pool(threads);
 
-        for(int t = 0; t < threads; t++) {
+        for(int t = 0; t < root->children->size(); t++) {
             mcts_trees.push_back(new MCTSTree(root->children->at(t)->state));
-            t_pool.do_job(MCTSTree::run_search, mcts_trees.back().root, 100);
+            t_pool.do_job(std::bind(&MCTSTree::run_search, mcts_trees.back(), mcts_trees.back()->root, 100));
         }
 
         MCTSNode* best = best_child(mcts_trees);
