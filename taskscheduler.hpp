@@ -78,7 +78,7 @@ class ThreadPool {
 
     }
 
-}
+};
 
 
 class TaskScheduler {
