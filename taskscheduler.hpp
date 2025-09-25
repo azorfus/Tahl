@@ -17,7 +17,7 @@ class ThreadPool {
     ThreadPool(int threads) {
         workers.reserve(threads);
         for(int i = 0; i < threads; i++) {
-            workers.emplace_back(std::thread(std::function<void()>));
+            workers.emplace_back(std::bind (&ThreadPool::thread_entry, this, i));
         }
     }
 
@@ -37,7 +37,7 @@ class ThreadPool {
             thread.join();
     }
 
-    void doJob (std::function <void (void)> func)
+    void do_job (std::function <void (void)> func)
     {
         // Place a job on the queu and unblock a thread
         std::unique_lock <std::mutex> l (queue_mutex);
@@ -48,7 +48,7 @@ class ThreadPool {
 
     protected:
 
-    void threadEntry (int i)
+    void thread_entry (int i)
     {
         std::function <void (void)> job;
 
@@ -95,14 +95,11 @@ public:
         std::vector<std::thread> daemons;
         std::vector<MCTSTree*> mcts_trees;
 
+        ThreadPool t_pool(threads);
+
         for(int t = 0; t < threads; t++) {
             mcts_trees.push_back(new MCTSTree(root->children->at(t)->state));
-            daemons.push_back(std::thread(&MCTSTree::run_search,
-                              mcts_trees.back(), 100));
-        }
-
-        for(auto &daemon : daemons) {
-            if(daemon.joinable()) daemon.join();
+            t_pool.do_job(MCTSTree::run_search, mcts_trees.back().root, 100);
         }
 
         MCTSNode* best = best_child(mcts_trees);
