@@ -14,6 +14,8 @@ public:
     double score;
     bool chosen = false;
 
+    int visits = 0;
+
     std::vector<MCTSNode*> *children;
     chess::Board state;
     chess::Move action;

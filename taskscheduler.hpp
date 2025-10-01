@@ -6,79 +6,72 @@
 #include <functional>
 
 class ThreadPool {
-
 public:
+    ThreadPool(int threads) : shutdown_(false) {
+        // Launch worker threads
+        for (int i = 0; i < threads; i++) {
+            workers.emplace_back(&ThreadPool::thread_entry, this, i);
+        }
+    }
 
-    std::vector <std::thread> workers;
+    ~ThreadPool() {
+        {
+            // Tell workers to shut down
+            std::unique_lock<std::mutex> lock(queue_mutex);
+            shutdown_ = true;
+        }
+        cond_var.notify_all(); // wake all workers
+
+        for (auto& thread : workers) {
+            if (thread.joinable())
+                thread.join();
+        }
+    }
+
+    // Submit a job to the pool
+    void do_job(std::function<void()> func) {
+        {
+            std::unique_lock<std::mutex> lock(queue_mutex);
+            jobs.emplace(std::move(func));
+        }
+        cond_var.notify_one(); // wake one worker
+    }
+
+private:
+    std::vector<std::thread> workers;
+    std::queue<std::function<void()>> jobs;
+
     std::mutex queue_mutex;
-    std::queue <std::function <void (void)>> jobs;
     std::condition_variable cond_var;
     bool shutdown_;
 
-    ThreadPool(int threads) {
-        workers.reserve(threads);
-        for(int i = 0; i < threads; i++) {
-            workers.emplace_back(std::bind (&ThreadPool::thread_entry, this, i));
-        }
-    }
+    void thread_entry(int id) {
+        while (true) {
+            std::function<void()> job;
 
-    ~ThreadPool ()
-    {
-        {
-            // Unblock any threads and tell them to stop
-            std::unique_lock <std::mutex> l (queue_mutex);
-
-            shutdown_ = true;
-            cond_var.notify_all();
-        }
-
-        // Wait for all threads to stop
-        std::cerr << "Joining threads" << std::endl;
-        for (auto& thread : workers)
-            thread.join();
-    }
-
-    void do_job (std::function <void(void)> func)
-    {
-        // Place a job on the queue and unblock a thread
-        std::unique_lock <std::mutex> l (queue_mutex);
-
-        jobs.emplace (std::move(func));
-        cond_var.notify_one();
-    }
-
-    protected:
-
-    void thread_entry (int i)
-    {
-        std::function <void(void)> job;
-
-        while (1)
-        {
             {
-                std::unique_lock <std::mutex> l (queue_mutex);
+                std::unique_lock<std::mutex> lock(queue_mutex);
 
-                while (!shutdown_ && jobs.empty())
-                    cond_var.wait(l);
+                // Wait until there is a job or shutdown is true
+                cond_var.wait(lock, [&]() {
+                    return shutdown_ || !jobs.empty();
+                });
 
-                if (jobs.empty())
-                {
-                    // No jobs to do and we are shutting down
-                    std::cerr << "Thread " << i << " terminates" << std::endl;
+                if (shutdown_ && jobs.empty()) {
+                    // Graceful exit
+                    std::cerr << "Thread " << id << " exits\n";
                     return;
-                 }
+                }
 
-                std::cerr << "Thread " << i << " does a job" << std::endl;
-                job = std::move (jobs.front());
+                // Take one job
+                job = std::move(jobs.front());
                 jobs.pop();
             }
 
-            // Do the job without holding any locks
-            job ();
+            // Run the job (outside the lock!)
+            job();
         }
-
     }
-
 };
 
 
@@ -112,7 +105,7 @@ public:
         for (int t = 0; t < threads; t++) {
             
             /*
-            
+
                 [&]() {}
                 [&, t]() {}
                 
@@ -145,24 +138,24 @@ public:
         }
 
         // ---- MERGE RESULTS ----
-        for (auto& child : root->children) {
+        for (auto& child : *(root->children)) {
             child->visits = 0;
             child->score  = 0;
         }
 
         for (auto tree : mcts_trees) {
-            for (size_t i = 0; i < root->children.size(); i++) {
-                root->children[i]->visits += tree->root->children[i]->visits;
-                root->children[i]->score  += tree->root->children[i]->score;
+            for (size_t i = 0; i < root->children->size(); i++) {
+                root->children->at(i)->visits += tree->root->children->at(i)->visits;
+                root->children->at(i)->score  += tree->root->children->at(i)->score;
             }
         }
 
         // Pick best child by merged stats
         int best_index = 0;
         double best_score = -1e9;
-        for (size_t i = 0; i < root->children.size(); i++) {
-            if (root->children[i]->visits > best_score) {
-                best_score = root->children[i]->visits; 
+        for (size_t i = 0; i < root->children->size(); i++) {
+            if (root->children->at(i)->visits > best_score) {
+                best_score = root->children->at(i)->visits; 
                 best_index = i;
             }
         }
