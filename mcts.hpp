@@ -147,15 +147,10 @@ public:
 
             MCTSNode* walker = given_root;
 
-                /*
-
-            Redundant?
-
             // Selection
             while(!walker->terminal && walker->is_fully_expanded()) {
                 walker = walker->best_child(exploitation_parameter);
             }
-                */
             
             // Expansion
             if(!walker->is_terminal(walker->state)) {
