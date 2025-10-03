@@ -80,88 +80,24 @@ class TaskScheduler {
 public:
 
     MCTSNode* root;
+    ThreadPool* pool;
 
-    TaskScheduler(MCTSNode* root) {
+    TaskScheduler(MCTSNode* root, ThreadPool* pool) {
         this->root = root;
+        this->pool = pool;
     }
     ~TaskScheduler() {}
 
-    int threaded_evaluate(int threads) {
-        ThreadPool t_pool(threads);
-
+    int threaded_evaluate() {
         std::vector<MCTSTree*> mcts_trees;
         mcts_trees.reserve(threads);
 
-        // Create trees
-        for (int t = 0; t < threads; t++) {
-            mcts_trees.push_back(new MCTSTree(root->state));
-        }
+        ThreadPool pool(threads);
 
-        // Run them in parallel
-        std::mutex done_mutex;
-        std::condition_variable done_cv;
-        int finished = 0;
+        std::mutex mtx;
 
-        for (int t = 0; t < threads; t++) {
-            
-            /*
 
-                [&]() {}
-                [&, t]() {}
-                
-                These are lambda capture lists. In the first case: [&] means "capture all variables by reference".
-                and hence whenever the lambda is called, it will reference the original values and modify the
-                original variables.
-                
-                In the seecond case: [&, t] means "capture all variables by reference, except t which is captured by value".
-                This is important because t is modified in the loop, and if we captured it by reference, all threads would
-                see the same (last) value of t. By capturing it by value, each thread gets its own copy of t as it was when the lambda was created.
-
-            */
-            
-            t_pool.do_job([&, t]() {
-                mcts_trees[t]->run_search(mcts_trees[t]->root, 1000); // iterations per thread
-                {
-                    std::lock_guard<std::mutex> lock(done_mutex);
-                    finished++;
-                    done_cv.notify_one();
-                }
-            });
-        }
-
-        // Wait until all trees finish
-        // This scope is defined for C++ RAII, so that the lock
-        // is released when we leave the scope
-        {
-            std::unique_lock<std::mutex> lock(done_mutex);
-            done_cv.wait(lock, [&]() { return finished == threads; });
-        }
-
-        // ---- MERGE RESULTS ----
-        for (auto& child : *(root->children)) {
-            child->visits = 0;
-            child->score  = 0;
-        }
-
-        for (auto tree : mcts_trees) {
-            for (size_t i = 0; i < root->children->size(); i++) {
-                root->children->at(i)->visits += tree->root->children->at(i)->visits;
-                root->children->at(i)->score  += tree->root->children->at(i)->score;
-            }
-        }
-
-        // Pick best child by merged stats
-        int best_index = 0;
-        double best_score = -1e9;
-        for (size_t i = 0; i < root->children->size(); i++) {
-            if (root->children->at(i)->visits > best_score) {
-                best_score = root->children->at(i)->visits; 
-                best_index = i;
-            }
-        }
-
-        clean_up(mcts_trees);
-        return best_index;
+        
     }
 
 

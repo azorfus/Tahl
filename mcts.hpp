@@ -161,6 +161,7 @@ public:
 
             // Rollout
             double result = walker->rollout();
+            walker->score = result;
             
         }
     }

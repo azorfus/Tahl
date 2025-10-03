@@ -38,7 +38,7 @@ int main() {
     std::cout << "Best index: " << best_index << std::endl;
     // std::cout << "Best move found: " << chess::uci::moveToUci(best->action) << std::endl;
 } */
-
+/**/
 int main() {
     // Start position
     chess::Board board = chess::Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -49,11 +49,13 @@ int main() {
     // Expand root so it has children before we start parallel search
     root->expand();
 
-    // Scheduler for running threaded MCTS
-    TaskScheduler scheduler(root);
+    // Create a thread pool with 4 threads.
+    ThreadPool t_pool(4);
 
-    // Run search with 4 threads
-    int best_index = scheduler.threaded_evaluate(4);
+    // Initializing the scheduler for running threaded MCTS with our thread pool
+    TaskScheduler scheduler(root, t_pool);
+
+    int best_index = scheduler.threaded_evaluate();
 
     // Get best child node from root
     if (best_index >= 0 && best_index < (int)root->children->size()) {
