@@ -1,44 +1,31 @@
 #include <iostream>
-#include "taskscheduler.hpp"
+#include "threadpool.hpp"
 
-/*
-int main(){
-    chess::Board board = chess::Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    MCTSTree *tree = new MCTSTree(board);
 
-    std::cout<<board;
-    bool turn=true;
+int threaded_evaluate(MCTSNode* root, ThreadPool* t_pool) {
 
-    while (!board.isInsufficientMaterial() && !board.isRepetition() && !board.isHalfMoveDraw() && !(board.getHalfMoveDrawType().first==chess::GameResultReason::CHECKMATE) && !(board.getHalfMoveDrawType().first==chess::GameResultReason::STALEMATE)){
-        if (turn){
-            chess::Move best = tree->run_search(num_iterations);
-            board.makeMove(best);
-            std::cout<<board;
-            turn = false;
-            delete tree;
-        }
-        else{
-            std::string s; std::cin>>s;
-            board.makeMove(chess::uci::uciToMove(board, s));
-            std::cout<<board;
-            MCTSTree *tree = new MCTSTree(board);
-            turn = true;
+    root->flower();
+
+    std::vector <MCTSTree*> mcts_trees;
+    for(int i = 0; i < root->children->size(); i++) {
+        mcts_trees.emplace_back(new MCTSTree(root->children->at(i)->state));
+    }
+
+    for(int i = 0; i < mcts_trees.size(); i++) {
+        t_pool->do_job(std::bind(&MCTSTree::run_search, mcts_trees[i], mcts_trees[i]->root, 1000));
+    }
+
+    int max = 0;
+    for(int i = 0; i < mcts_trees.size(); i++) {
+        if(mcts_trees[i]->root->score > mcts_trees[max]->root->score) {
+            max = i;
         }
     }
-}
-*/
-/*
-int main() {
-    chess::Board board = chess::Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    MCTSNode* root = new MCTSNode(nullptr, board, chess::Move());
-    TaskScheduler scheduler(root);
 
-    // MCTSNode* best = scheduler.threaded_evaluate(4);
-    int best_index = scheduler.threaded_evaluate(4);
-    std::cout << "Best index: " << best_index << std::endl;
-    // std::cout << "Best move found: " << chess::uci::moveToUci(best->action) << std::endl;
-} */
-/**/
+    return max;
+
+}
+
 int main() {
     // Start position
     chess::Board board = chess::Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -46,16 +33,11 @@ int main() {
     // Root node (no parent, initial board, no move leading to it)
     MCTSNode* root = new MCTSNode(nullptr, board, chess::Move());
 
-    // Expand root so it has children before we start parallel search
-    root->expand();
-
     // Create a thread pool with 4 threads.
     ThreadPool t_pool(4);
 
-    // Initializing the scheduler for running threaded MCTS with our thread pool
-    TaskScheduler scheduler(root, t_pool);
-
-    int best_index = scheduler.threaded_evaluate();
+    // Index of the best child
+    int best_index = threaded_evaluate(root, &t_pool);
 
     // Get best child node from root
     if (best_index >= 0 && best_index < (int)root->children->size()) {
@@ -68,6 +50,6 @@ int main() {
         std::cout << "No best move found!" << std::endl;
     }
 
-    delete root; // cleanup (depending on your node ownership model)
+    delete root; // cleanup 
     return 0;
 }

@@ -7,7 +7,11 @@
 
 class ThreadPool {
 public:
+
+    int thread_count = 0;
+
     ThreadPool(int threads) : shutdown_(false) {
+        thread_count = threads;
         // Launch worker threads
         for (int i = 0; i < threads; i++) {
             workers.emplace_back(&ThreadPool::thread_entry, this, i);
@@ -74,29 +78,33 @@ private:
     }
 };
 
+/*
+
+    Moral of the story: AI is dumb
 
 class TaskScheduler {
 
 public:
 
     MCTSNode* root;
-    ThreadPool* pool;
+    ThreadPool* t_pool;
 
-    TaskScheduler(MCTSNode* root, ThreadPool* pool) {
+    TaskScheduler(MCTSNode* root, ThreadPool* t_pool) {
         this->root = root;
-        this->pool = pool;
+        this->t_pool = t_pool;
     }
     ~TaskScheduler() {}
 
     int threaded_evaluate() {
         std::vector<MCTSTree*> mcts_trees;
-        mcts_trees.reserve(threads);
 
-        ThreadPool pool(threads);
+        for(int i = 0; i < root->children->size(); i++) {
+            mcts_trees[i] = new MCTSTree(root->children->at(i));
+        }
 
-        std::mutex mtx;
+        for(int i = 0; i < mcts_trees.size(); i++) {
 
-
+        }
         
     }
 
@@ -124,3 +132,4 @@ public:
     }
 
 };
+*/

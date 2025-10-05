@@ -57,6 +57,12 @@ public:
         return 0;
     }
 
+    void flower() {
+        while(!untried_actions.empty()) {
+            expand();
+        }
+    }
+
     MCTSNode* expand(){
         chess::Move move = untried_actions.back();
         chess::Movelist new_moves_list;
@@ -145,14 +151,19 @@ public:
     }
 
     void run_search(MCTSNode* given_root, int iterations) {
+        int average = 0;
         for(int i = 0; i < iterations; i++) {
 
             MCTSNode* walker = given_root;
 
-            // Selection
+            /*
+
+                Redundant? 
+
             while(!walker->terminal && walker->is_fully_expanded()) {
                 walker = walker->best_child(exploitation_parameter);
             }
+            */
             
             // Expansion
             if(!walker->is_terminal(walker->state)) {
@@ -161,9 +172,12 @@ public:
 
             // Rollout
             double result = walker->rollout();
-            walker->score = result;
+            average += result;
             
         }
+        
+        given_root->score = average/iterations;
     }
+
 };
 
