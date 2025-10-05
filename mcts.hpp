@@ -109,7 +109,7 @@ public:
         if (children->empty()) return nullptr;
 
         double ucb, m=-1;
-        MCTSNode* best = nullptr;
+        MCTSNode* best = children->at(0);
 
         for (MCTSNode *child : *children){
             double q = child->score / ((double) child->simulations);
@@ -156,14 +156,9 @@ public:
 
             MCTSNode* walker = given_root;
 
-            /*
-
-                Redundant? 
-
             while(!walker->terminal && walker->is_fully_expanded()) {
                 walker = walker->best_child(exploitation_parameter);
             }
-            */
             
             // Expansion
             if(!walker->is_terminal(walker->state)) {
