@@ -151,11 +151,12 @@ public:
     }
 
     void run_search(MCTSNode* given_root, int iterations) {
-        int average = 0;
+        double average = 0;
         for(int i = 0; i < iterations; i++) {
 
             MCTSNode* walker = given_root;
 
+            // Selection
             while(!walker->terminal && walker->is_fully_expanded()) {
                 walker = walker->best_child(exploitation_parameter);
             }
@@ -170,7 +171,6 @@ public:
             average += result;
             
         }
-        
         given_root->score = average/iterations;
     }
 
