@@ -31,7 +31,7 @@ int threaded_evaluate(MCTSNode* root, ThreadPool* t_pool) {
         
         t_pool->do_job([&, i](){
 
-            mcts_trees[i]->run_search(mcts_trees[i]->root, 10000);
+            mcts_trees[i]->run_search(mcts_trees[i]->root, 1000);
 
             {
                 std::lock_guard <std::mutex> lock(done_mutex);
@@ -56,6 +56,8 @@ int threaded_evaluate(MCTSNode* root, ThreadPool* t_pool) {
         }
     }
 
+    for(auto &tree: mcts_trees) { delete tree; };
+
     return max;
 
 }
@@ -68,8 +70,8 @@ int main() {
     // Root node (no parent, initial board, no move leading to it)
     MCTSNode* root = new MCTSNode(nullptr, board, chess::Move());
 
-    // Create a thread pool with 4 threads.
-    ThreadPool t_pool(4);
+    // Create a thread pool with 8 threads.
+    ThreadPool t_pool(8);
 
     // Index of the best child
     int best_index = threaded_evaluate(root, &t_pool);
