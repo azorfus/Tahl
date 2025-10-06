@@ -151,7 +151,6 @@ public:
     }
 
     void run_search(MCTSNode* given_root, int iterations) {
-        double average = 0;
         for(int i = 0; i < iterations; i++) {
 
             MCTSNode* walker = given_root;
@@ -168,10 +167,11 @@ public:
 
             // Rollout
             double result = walker->rollout();
-            average += result;
+
+            // Backpropagate
+            walker->backpropagate(result);
             
         }
-        given_root->score = average/iterations;
     }
 
 };

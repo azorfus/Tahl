@@ -2,7 +2,10 @@
 #include "threadpool.hpp"
 
 
-int threaded_evaluate(MCTSNode* root, ThreadPool* t_pool) {
+int threaded_evaluate(MCTSNode* root) {
+
+    // Create a thread pool with 8 threads.
+    ThreadPool t_pool(8);
 
     root->flower();
 
@@ -17,7 +20,7 @@ int threaded_evaluate(MCTSNode* root, ThreadPool* t_pool) {
 
     for(int i = 0; i < mcts_trees.size(); i++) {
         /*
-            t_pool->do_job(std::bind(&MCTSTree::run_search, mcts_trees[i], mcts_trees[i]->root, 1000));
+            t_pool.do_job(std::bind(&MCTSTree::run_search, mcts_trees[i], mcts_trees[i]->root, 1000));
 
             Not ideal for waiting for the jobs to finish in our case. 
             Instead of writing an external explicit function to lock mutex
@@ -29,7 +32,7 @@ int threaded_evaluate(MCTSNode* root, ThreadPool* t_pool) {
             and then runs the scoped code to wait for the entire lambda to finish.
         */
         
-        t_pool->do_job([&, i](){
+        t_pool.do_job([&, i](){
 
             mcts_trees[i]->run_search(mcts_trees[i]->root, 1000);
 
@@ -45,7 +48,7 @@ int threaded_evaluate(MCTSNode* root, ThreadPool* t_pool) {
     // Wait until all threads are finished 
     { 
         std::unique_lock<std::mutex> lock(done_mutex); 
-        done_cv.wait(lock, [&]() { return finished_threads == t_pool->thread_count; }); 
+        done_cv.wait(lock, [&]() { return finished_threads == t_pool.thread_count; }); 
     }
 
     int max = 0;
@@ -70,11 +73,8 @@ int main() {
     // Root node (no parent, initial board, no move leading to it)
     MCTSNode* root = new MCTSNode(nullptr, board, chess::Move());
 
-    // Create a thread pool with 8 threads.
-    ThreadPool t_pool(8);
-
     // Index of the best child
-    int best_index = threaded_evaluate(root, &t_pool);
+    int best_index = threaded_evaluate(root);
 
     // Get best child node from root
     if (best_index >= 0 && best_index < (int)root->children->size()) {
