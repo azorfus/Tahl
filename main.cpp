@@ -13,9 +13,9 @@ int threaded_evaluate(MCTSNode* root) {
     std::condition_variable done_cv;
     int finished_threads = 0;
 
-    std::vector <MCTSTree*> mcts_trees;
-    for(int i = 0; i < root->children->size(); i++) {
-        mcts_trees.emplace_back(new MCTSTree(root->children->at(i)->state));
+    std::vector < std::shared_ptr<MCTSTree> > mcts_trees;
+    for(int i = 0; i < root->children.size(); i++) {
+        mcts_trees.emplace_back(std::make_shared<MCTSTree>(root->children[i]->state));
     }
 
     for(int i = 0; i < mcts_trees.size(); i++) {
@@ -59,8 +59,6 @@ int threaded_evaluate(MCTSNode* root) {
         }
     }
 
-    for(auto &tree: mcts_trees) { delete tree; };
-
     return max;
 
 }
@@ -77,8 +75,8 @@ int main() {
     int best_index = threaded_evaluate(root);
 
     // Get best child node from root
-    if (best_index >= 0 && best_index < (int)root->children->size()) {
-        MCTSNode* best_child = root->children->at(best_index);
+    if (best_index >= 0 && best_index < (int)root->children.size()) {
+        std::shared_ptr<MCTSNode> best_child = root->children[best_index];
         std::cout << "Best index: " << best_index << std::endl;
         std::cout << "Best move found: " 
                   << chess::uci::moveToUci(best_child->action) 

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include <memory>
 #include <unordered_map>
 #include "include/chess.hpp"
 #define exploitation_parameter 1.414
@@ -16,7 +17,7 @@ public:
 
     int visits = 0;
 
-    std::vector<MCTSNode*> *children;
+    std::vector < std::shared_ptr<MCTSNode> > children;
     chess::Board state;
     chess::Move action;
     chess::Movelist untried_actions;
@@ -25,17 +26,16 @@ public:
 
     MCTSNode(MCTSNode *parent, chess::Board state, chess::Move action)
         : parent(parent), state(state), action(action), score(0.0), simulations(0){
+            /*
             children = new std::vector<MCTSNode*>();
             children->reserve(32);
+            */
             actions_to_try(state);
             terminal = is_terminal(state);
             turn = state.sideToMove() == chess::Color::WHITE;
         }
 
-    ~MCTSNode(){
-        for (auto* child : *children) delete child;
-        delete children;
-    }
+    ~MCTSNode(){}
 
     void actions_to_try(chess::Board state){
         return chess::movegen::legalmoves(untried_actions, state);
@@ -63,7 +63,7 @@ public:
         }
     }
 
-    MCTSNode* expand(){
+    std::shared_ptr<MCTSNode> expand(){
         chess::Move move = untried_actions.back();
         chess::Movelist new_moves_list;
 
@@ -75,9 +75,9 @@ public:
         chess::Board new_state = state;
         new_state.makeMove(move);
 
-        MCTSNode* child = new MCTSNode(this, new_state, move);
+        std::shared_ptr<MCTSNode> child = std::make_shared<MCTSNode> (this, new_state, move);
 
-        children->push_back(child);
+        children.push_back(child);
 
         return child;
     }
@@ -105,13 +105,13 @@ public:
         return terminal || untried_actions.empty();
     }
 
-    MCTSNode* best_child(double c) {
-        if (children->empty()) return nullptr;
+    std::shared_ptr<MCTSNode> best_child(double c) {
+        if (children.empty()) return nullptr;
 
         double ucb, m=-1;
-        MCTSNode* best = children->at(0);
+        std::shared_ptr<MCTSNode> best = children.at(0);
 
-        for (MCTSNode *child : *children){
+        for (std::shared_ptr<MCTSNode> child : children){
             double q = child->score / ((double) child->simulations);
             ucb = c * sqrt(log(((double) this->simulations)) / ((double) child->simulations));
 
@@ -130,7 +130,7 @@ public:
     void backpropagate(double result) {
         MCTSNode* node = this;
 
-        while(node) {
+        while(node != nullptr) {
             node->simulations++;
             node->score += result;
             node = node->parent;
@@ -153,7 +153,7 @@ public:
     void run_search(MCTSNode* given_root, int iterations) {
         for(int i = 0; i < iterations; i++) {
 
-            MCTSNode* walker = given_root;
+            std::shared_ptr<MCTSNode> walker(given_root);
 
             // Selection
             while(!walker->terminal && walker->is_fully_expanded()) {
