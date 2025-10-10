@@ -151,6 +151,7 @@ public:
     }
 
     void run_search(MCTSNode* given_root, int iterations) {
+        double average = 0;
         for(int i = 0; i < iterations; i++) {
 
             std::shared_ptr<MCTSNode> walker(given_root);
@@ -167,11 +168,10 @@ public:
 
             // Rollout
             double result = walker->rollout();
-
-            // Backpropagate
-            walker->backpropagate(result);
+            average += result;
             
         }
+        given_root->score = average/iterations;
     }
 
 };

@@ -19,8 +19,6 @@ public:
     }
 
     ~ThreadPool() {
-        wait_for_completion();
-
         {
             // Tell workers to shut down
             std::unique_lock<std::mutex> lock(queue_mutex);
@@ -38,20 +36,9 @@ public:
     void do_job(std::function<void()> func) {
         {
             std::unique_lock<std::mutex> lock(queue_mutex);
-            if (shutdown_) throw std::runtime_error("ThreadPool shutting down");
-            jobs.emplace([this, func]() {
-                func();
-                done_var.notify_one();
-            });
+            jobs.emplace(std::move(func));
         }
-        cond_var.notify_one();
-    }
-
-    void wait_for_completion() {
-        std::unique_lock<std::mutex> lock(wait_mutex);
-        done_var.wait(lock, [&]() {
-            return jobs.empty();
-        });
+        cond_var.notify_one(); // wake one worker
     }
 
 private:
@@ -59,10 +46,7 @@ private:
     std::queue<std::function<void()>> jobs;
 
     std::mutex queue_mutex;
-    std::mutex wait_mutex;
-
     std::condition_variable cond_var;
-    std::condition_variable done_var;
     bool shutdown_;
 
     void thread_entry(int id) {
@@ -93,3 +77,59 @@ private:
         }
     }
 };
+
+/*
+
+    Moral of the story: AI is dumb
+
+class TaskScheduler {
+
+public:
+
+    MCTSNode* root;
+    ThreadPool* t_pool;
+
+    TaskScheduler(MCTSNode* root, ThreadPool* t_pool) {
+        this->root = root;
+        this->t_pool = t_pool;
+    }
+    ~TaskScheduler() {}
+
+    int threaded_evaluate() {
+        std::vector<MCTSTree*> mcts_trees;
+
+        for(int i = 0; i < root->children->size(); i++) {
+            mcts_trees[i] = new MCTSTree(root->children->at(i));
+        }
+
+        for(int i = 0; i < mcts_trees.size(); i++) {
+
+        }
+        
+    }
+
+
+    void clean_up(std::vector<MCTSTree*> mcts_trees) {
+        for(auto tree : mcts_trees) {
+            delete tree;
+        }
+    }
+
+    int indexof_best_child(const std::vector<MCTSTree*>& mcts_trees) {
+        if (mcts_trees.empty()) return -1;
+
+        int best_index = 0;
+        MCTSNode* best = mcts_trees[0]->root;
+
+        for (size_t i = 1; i < mcts_trees.size(); ++i) {
+            if (mcts_trees[i]->root->score > best->score) {
+                best = mcts_trees[i]->root;
+                best_index = i;
+            }
+        }
+
+        return best_index;
+    }
+
+};
+*/
