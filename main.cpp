@@ -8,11 +8,14 @@ int threaded_evaluate(MCTSNode* root, ThreadPool* t_pool) {
 
     std::mutex done_mutex;
     std::condition_variable done_cv;
-    int finished_threads = 0;
 
-    std::vector < std::shared_ptr<MCTSTree> > mcts_trees;
+    std::vector <MCTSTree*> mcts_trees;
     for(int i = 0; i < root->children.size(); i++) {
-        mcts_trees.emplace_back(std::make_shared<MCTSTree>(root->children[i]->state));
+        mcts_trees.emplace_back(new MCTSTree(root->children[i]->state));
+    }
+
+    for(int i = 0; i < root->children.size(); i++) {
+        mcts_trees[i]->root->id = 1001 + i;
     }
 
     for(int i = 0; i < mcts_trees.size(); i++) {
@@ -35,7 +38,6 @@ int threaded_evaluate(MCTSNode* root, ThreadPool* t_pool) {
 
             {
                 std::lock_guard <std::mutex> lock(done_mutex);
-                finished_threads = finished_threads + 1;
                 done_cv.notify_one();
             }
 
@@ -45,12 +47,12 @@ int threaded_evaluate(MCTSNode* root, ThreadPool* t_pool) {
     // Wait until all threads are finished 
     { 
         std::unique_lock<std::mutex> lock(done_mutex); 
-        done_cv.wait(lock, [&]() { return finished_threads == t_pool->thread_count; }); 
+        done_cv.wait(lock, [&]() { return (t_pool->number_of_jobs() == 0); }); 
     }
 
     int max = 0;
     for(int i = 0; i < mcts_trees.size(); i++) {
-        std::cout << "Child " << i << " Score: " << mcts_trees[i]->root->score << std::endl;
+        std::cout << "Child " << i + 1 << " Score: " << mcts_trees[i]->root->score << std::endl;
         if(mcts_trees[i]->root->score > mcts_trees[max]->root->score) {
             max = i;
         }
@@ -68,15 +70,15 @@ int main() {
     // Root node (no parent, initial board, no move leading to it)
     MCTSNode* root = new MCTSNode(nullptr, board, chess::Move());
 
-    // Create a thread pool with 8 threads.
-    ThreadPool t_pool(8);
+    // Create a thread pool with 4 threads.
+    ThreadPool t_pool(4);
 
     // Index of the best child
     int best_index = threaded_evaluate(root, &t_pool);
 
     // Get best child node from root
     if (best_index >= 0 && best_index < (int)root->children.size()) {
-        std::shared_ptr<MCTSNode> best_child = root->children[best_index];
+        MCTSNode* best_child = root->children[best_index];
         std::cout << "Best index: " << best_index << std::endl;
         std::cout << "Best move found: " 
                   << chess::uci::moveToUci(best_child->action) 

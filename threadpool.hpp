@@ -41,6 +41,11 @@ public:
         cond_var.notify_one(); // wake one worker
     }
 
+    int number_of_jobs() {
+        std::cout << "No of jobs: " << jobs.size() << "\n";
+        return jobs.size();
+    }
+
 private:
     std::vector<std::thread> workers;
     std::queue<std::function<void()>> jobs;

@@ -14,10 +14,11 @@ public:
     unsigned int simulations;
     double score;
     bool chosen = false;
+    int id = 0;
 
     int visits = 0;
 
-    std::vector < std::shared_ptr<MCTSNode> > children;
+    std::vector < MCTSNode* > children;
     chess::Board state;
     chess::Move action;
     chess::Movelist untried_actions;
@@ -63,7 +64,7 @@ public:
         }
     }
 
-    std::shared_ptr<MCTSNode> expand(){
+    MCTSNode* expand(){
         chess::Move move = untried_actions.back();
         chess::Movelist new_moves_list;
 
@@ -75,7 +76,7 @@ public:
         chess::Board new_state = state;
         new_state.makeMove(move);
 
-        std::shared_ptr<MCTSNode> child = std::make_shared<MCTSNode> (this, new_state, move);
+        MCTSNode* child = new MCTSNode(this, new_state, move);
 
         children.push_back(child);
 
@@ -105,13 +106,13 @@ public:
         return terminal || untried_actions.empty();
     }
 
-    std::shared_ptr<MCTSNode> best_child(double c) {
+    MCTSNode* best_child(double c) {
         if (children.empty()) return nullptr;
 
         double ucb, m=-1;
-        std::shared_ptr<MCTSNode> best = children.at(0);
+        MCTSNode* best = children.at(0);
 
-        for (std::shared_ptr<MCTSNode> child : children){
+        for (MCTSNode* child : children){
             double q = child->score / ((double) child->simulations);
             ucb = c * sqrt(log(((double) this->simulations)) / ((double) child->simulations));
 
@@ -147,14 +148,14 @@ public:
     }
 
     ~MCTSTree() {
-        delete root;   
+        delete root;
     }
 
     void run_search(MCTSNode* given_root, int iterations) {
-        double average = 0;
+        double result = 0;
         for(int i = 0; i < iterations; i++) {
-
-            std::shared_ptr<MCTSNode> walker(given_root);
+            
+            MCTSNode* walker = given_root;
 
             // Selection
             while(!walker->terminal && walker->is_fully_expanded()) {
@@ -167,11 +168,13 @@ public:
             }
 
             // Rollout
-            double result = walker->rollout();
-            average += result;
+            result = walker->rollout();
+
+            // Backpropagate
+            walker->backpropagate(result);
             
         }
-        given_root->score = average/iterations;
+        given_root->score = result;
     }
 
 };
