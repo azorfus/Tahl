@@ -42,7 +42,7 @@ public:
     }
 
     int number_of_jobs() {
-        std::cout << "No of jobs: " << jobs.size() << "\n";
+        std::unique_lock<std::mutex> lock(queue_mutex);
         return jobs.size();
     }
 
@@ -81,6 +81,80 @@ private:
             job();
         }
     }
+};
+
+class TaskScheduler {
+
+public:
+    MCTSNode* root;
+    ThreadPool* t_pool;
+
+    TaskScheduler(MCTSNode* root, int threads) {
+        this->root = root;
+        t_pool = new ThreadPool(threads);
+    }
+    ~TaskScheduler() {}
+
+    int threaded_evaluate() {
+
+        root->flower();
+
+        std::mutex done_mutex;
+        std::condition_variable done_cv;
+
+        std::vector <MCTSTree*> mcts_trees;
+        for(int i = 0; i < root->children.size(); i++) {
+            mcts_trees.emplace_back(new MCTSTree(root->children[i]->state));
+        }
+
+        for(int i = 0; i < root->children.size(); i++) {
+            mcts_trees[i]->root->id = 1001 + i;
+        }
+
+        for(int i = 0; i < mcts_trees.size(); i++) {
+            /*
+                t_pool->do_job(std::bind(&MCTSTree::run_search, mcts_trees[i], mcts_trees[i]->root, 1000));
+
+                Not ideal for waiting for the jobs to finish in our case. 
+                Instead of writing an external explicit function to lock mutex
+                and wait for completion of work, We could just use Lambda functions as shown.
+            */
+
+            /* 
+                The following lambda does two things with the same thread execution, runs the search
+                and then runs the scoped code to wait for the entire lambda to finish.
+            */
+            
+            t_pool->do_job([&, i](){
+
+                mcts_trees[i]->run_search(mcts_trees[i]->root, 1000);
+
+                {
+                    std::lock_guard <std::mutex> lock(done_mutex);
+                    done_cv.notify_one();
+                }
+
+            });
+        }
+
+        // Wait until all threads are finished 
+        { 
+            std::unique_lock<std::mutex> lock(done_mutex); 
+            done_cv.wait(lock, [&]() { return (t_pool->number_of_jobs() == 0); }); 
+        }
+
+        int max = 0;
+        for(int i = 0; i < mcts_trees.size(); i++) {
+            std::cout << "Child " << i + 1 << " Score: " << mcts_trees[i]->root->score << std::endl;
+            if(mcts_trees[i]->root->score > mcts_trees[max]->root->score) {
+                max = i;
+            }
+        }
+
+        return max;
+
+    }
+
 };
 
 /*
