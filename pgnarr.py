@@ -1,5 +1,6 @@
 import io
 import sys
+import chess
 import chess.pgn
 import numpy as np
 
@@ -22,8 +23,8 @@ board_map = {
     "h5": (7, 4), "h6": (7, 5), "h7": (7, 6), "h8": (7, 7),
 }
 
-# Initial board manually typed out for ease of visualization of the input format
-sliced_root_board = [
+''' Initial board manually typed out for ease of visualization of the input format
+root_bitboard = [
 
     # PIECE INFO
 
@@ -98,13 +99,42 @@ sliced_root_board = [
      [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
      [0, 0, 0, 0, 0, 0, 0, 0]],   [0, 0, 0, 0, 0, 0, 0, 0]],    [0, 0, 0, 0, 0, 0, 0, 0]],    [0, 0, 0, 0, 0, 0, 0, 0]], 
 ]
+'''
 
-numpy_init_sliced_board = np.array(sliced_root_board)
+numpy_init_bitboard = np.zeros((28, 8, 8), dtype=np.int8)
 
 def process_pgn(pgn_data_array):
 
+    piece_types = [chess.PAWN, chess.ROOK, chess.KNIGHT,
+                   chess.BISHOP, chess.KING, chess.QUEEN]
+    
     for each_pgn in pgn_data_array:
         game = chess.pgn.read_game(io.StringIO(each_pgn))
+        board = game.board()
+
+
+        for move in game.mainline_moves():
+            
+            bitboard = np.zeros((28, 8, 8), dtype=np.int8)
+            
+            # First six slices are for white piece info in order of pawn, rook, knight, bishop, king and queen
+            # Next six slices act as the black piece info in the same order.
+            for i in range(len(piece_types)):
+                print(board.pieces(piece_types[i], chess.WHITE))
+                print()
+                for sq in board.pieces(piece_types[i], chess.WHITE):
+                    bitboard[i][sq // 8][sq % 8] = 1
+
+                for sq in board.pieces(piece_types[i], chess.BLACK):
+                    bitboard[i + 6][sq // 8][sq % 8] = 1
+
+            # Update castling information
+
+
+            board.push(move)
+
+
+
 
 
 
