@@ -136,8 +136,6 @@ def process_pgn(pgn_data_array):
 
 
 
-
-
 def flush_pgn(output_file, pgn_bit_slices):
     pass
 
