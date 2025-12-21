@@ -112,7 +112,6 @@ def process_pgn(pgn_data_array):
         game = chess.pgn.read_game(io.StringIO(each_pgn))
         board = game.board()
 
-
         for move in game.mainline_moves():
             
             bitboard = np.zeros((28, 8, 8), dtype=np.int8)
@@ -120,8 +119,6 @@ def process_pgn(pgn_data_array):
             # First six slices are for white piece info in order of pawn, rook, knight, bishop, king and queen
             # Next six slices act as the black piece info in the same order.
             for i in range(len(piece_types)):
-                print(board.pieces(piece_types[i], chess.WHITE))
-                print()
                 for sq in board.pieces(piece_types[i], chess.WHITE):
                     bitboard[i][sq // 8][sq % 8] = 1
 
@@ -129,9 +126,29 @@ def process_pgn(pgn_data_array):
                     bitboard[i + 6][sq // 8][sq % 8] = 1
 
             # Update castling information
+            if bool(board.castling_rights & chess.BB_A1): # White can castle with a1 rook
+                # Slice 12 and 13 are for white castling rights and castling possibility with the h1 rook
+                bitboard[12] = np.ones((8, 8), dtype=np.int8)
+            
+            if bool(board.castling_rights & chess.BB_H1): # White can castle with h1 rook
+                # Slice 14 and 15 are for white castling rights and castling possibility with the h1 rook
+                bitboard[14] = np.ones((8, 8), dtype=np.int8)
 
+
+            for z in bitboard:
+                for y in z:
+                    for x in y:
+                        print(x, end=" ")
+                    print()
+                print()
+                
+            break
 
             board.push(move)
+
+        break
+
+
 
 
 
