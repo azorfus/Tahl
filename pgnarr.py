@@ -68,6 +68,8 @@ def process_pgn(pgn_data_array):
 
     piece_types = [chess.PAWN, chess.ROOK, chess.KNIGHT,
                    chess.BISHOP, chess.KING, chess.QUEEN]
+
+    pgn_bitboards = []
     
     for each_pgn in pgn_data_array:
 
@@ -174,7 +176,12 @@ def process_pgn(pgn_data_array):
                         elif board.turn == chess.BLACK:
                             bitboard[23][source_coord[0]][source_coord[1]] = 1
 
+            board.push(move)
+            pgn_bitboards.append(bitboard)
 
+    return pgn_bitboards
+
+'''
                 for z in bitboard[20:24]:
                     for y in z:
                         for x in y:
@@ -186,8 +193,6 @@ def process_pgn(pgn_data_array):
                 print_castling_status(game_status)
 
 
-            board.push(move)
-'''
             for z in bitboard:
                 for y in z:
                     for x in y:
@@ -199,8 +204,14 @@ def process_pgn(pgn_data_array):
 '''
 
 
-def flush_pgn(output_file, pgn_bit_slices):
-    pass
+def flush_pgn(output_file, pgn_bitboards):
+    
+    with open(output_file, 'w') as ofile:
+        for bitboard in pgn_bitboards:
+            flat_board = bitboard.flatten()
+            flat_board = flat_board.tolist()
+            ofile.write("".join(map(str, flat_board)))
+
 
 def main():
     if len(sys.argv) <= 1:
@@ -233,10 +244,10 @@ def main():
             if pgn_count == pgn_limit:
                 print(f"[*] Buffer pgn Load limit reached ({pgn_count})")
                 print(f"[*] Flushing and processing the loaded pgn Data...")
-                pgn_bit_slices = process_pgn(pgn_data_array)
+                pgn_bitboards = process_pgn(pgn_data_array)
                 pgn_data_array.clear()
-                flush_pgn(output_file, pgn_bit_slices)
-                # pgn_bit_slices.clear()
+                flush_pgn(output_file, pgn_bitboards)
+                pgn_bitboards.clear()
 
 
 if __name__ == "__main__":
