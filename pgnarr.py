@@ -74,6 +74,8 @@ def process_pgn(pgn_data_array):
         game = chess.pgn.read_game(io.StringIO(each_pgn))
         board = game.board()
 
+        buffer_arrays = np.zeros((4, 8, 8), dtype=np.int8)
+
         for move in game.mainline_moves():
             
             # DEBUG 
@@ -107,8 +109,7 @@ def process_pgn(pgn_data_array):
             # *** WHITE ***
 
             # White king's side
-            if bool(board.castling_rights & chess.BB_H1): # White can castle with a1 rook
-                # Slice 12 and 13 are for white castling rights with the king's side and castling possibility with the a1 rook
+            if bool(board.castling_rights & chess.BB_H1): 
                 bitboard[12] = np.ones((8, 8), dtype=np.int8)
 
                 game_status["white_ks_cright"] = True
@@ -119,8 +120,7 @@ def process_pgn(pgn_data_array):
                 game_status["white_ks_cavail"] = True
             
             # White queen's side
-            if bool(board.castling_rights & chess.BB_A1): # White can castle with h1 rook
-                # Slice 14 and 15 are for white castling rights with the queen's and castling possibility with the h1 rook
+            if bool(board.castling_rights & chess.BB_A1): 
                 bitboard[14] = np.ones((8, 8), dtype=np.int8)
 
                 game_status["white_qs_cright"] = True
@@ -133,8 +133,7 @@ def process_pgn(pgn_data_array):
             # *** BLACK ***
 
             # Black king's side
-            if bool(board.castling_rights & chess.BB_H8): # Black can castle with h8 rook
-                # Slice 16 and 17 are for black's castling rights with the king's side and castling possibility with the h8 rook
+            if bool(board.castling_rights & chess.BB_H8): 
                 bitboard[16] = np.ones((8, 8), dtype=np.int8)
 
                 game_status["black_ks_cright"] = True
@@ -145,8 +144,7 @@ def process_pgn(pgn_data_array):
                 game_status["black_ks_cavail"] = True
 
             # Black queen's side
-            if bool(board.castling_rights & chess.BB_A8): # Black can castle with a8 rook
-                # Slice 18 and 19 are for black's castling rights with the queen's side and castling possibility with the h8 rook
+            if bool(board.castling_rights & chess.BB_A8): 
                 bitboard[18] = np.ones((8, 8), dtype=np.int8)
 
                 game_status["black_qs_cright"] = True
@@ -156,10 +154,44 @@ def process_pgn(pgn_data_array):
 
                 game_status["black_qs_cavail"] = True
 
-            # Checking and updating enpassant status slices
+            # Checking and updating en passant status slices
+            if board.has_legal_en_passant():
+                target_sq = chess.square_name(board.ep_square)
+                target_coord = board_map[target_sq]
 
-            print(board)
-            print_castling_status(game_status)
+                # target en passant square marking
+                if board.turn == chess.WHITE:
+                    bitboard[20][target_coord[0]][target_coord[1]] = 1
+                elif board.turn == chess.BLACK:
+                    bitboard[22][target_coord[0]][target_coord[1]] = 1
+
+                # origin of en passant
+                for lmove in board.legal_moves:
+                    if chess.square_name(lmove.to_square) == target_sq:
+                        source_sq = chess.square_name(lmove.from_square)
+                        source_coord = board_map[source_sq]
+
+                        if board.turn == chess.WHITE:
+                            bitboard[21][source_coord[0]][source_coord[1]] = 1
+                        elif board.turn == chess.BLACK:
+                            bitboard[23][source_coord[0]][source_coord[1]] = 1
+
+
+                for z in bitboard[20:24]:
+                    for y in z:
+                        for x in y:
+                            print(x, end=" ")
+                        print()
+                    print()
+
+                print(board)
+                print_castling_status(game_status)
+
+            # Buffering positions
+
+
+
+
 
             board.push(move)
 '''

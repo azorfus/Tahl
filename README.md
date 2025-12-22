@@ -3,7 +3,6 @@ An aggressive chess engine written using the Monte Carlo Tree Search with the ai
 
 # Input format for the Neural Network
 We slice the board into 28 layers of 2D bit arrays to feed the network and expect a 12 layer 2D bit array output.
-# Chess Bitboard Tensor — Initial Position (4 × 7)
 
 Legend: `1 = active`, `0 = empty`  
 Orientation: rank 8 (top) → rank 1 (bottom), files a → h
@@ -25,7 +24,7 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ---
 
-## SLICES 4 - 8: Piece information
+## SLICES 5 - 8: Piece information
 
 | W  Queen | W   King | B  Pawns | B  Rooks |
 |----------|----------|----------|----------|
@@ -40,7 +39,7 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ---
 
-## SLICES 8 - 12: Piece information
+## SLICES 9 - 12: Piece information
 
 | BKnights | BBishops | B  Queen | B   King |
 |----------|----------|----------|----------|
@@ -55,7 +54,7 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ---
 
-## SLICES 12 - 16: White Castling Rights and Castling availability
+## SLICES 13 - 16: White Castling Rights and Castling availability
 
 | White KS | White QS | White KS | White QS |
 |----------|----------|----------|----------|
@@ -70,7 +69,7 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ---
 
-## SLICES 16 - 20: Black Castling Rights and Castling availability
+## SLICES 17 - 20: Black Castling Rights and Castling availability
 
 | Black KS | Black QS | Black KS | Black QS |
 |----------|----------|----------|----------|
@@ -85,11 +84,11 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ---
 
-## SLICES 20 - 24: En Passant
+## SLICES 21 - 24: En Passant
 
-EP - En Passant, EPD - En Passant Direction
+EP - En Passant, EPO - En Passant Origin
 
-| EP White | EPDWhite | EP Black | EPDBLACK |
+| EP White | EPOWhite | EP Black | EPOBLACK |
 |----------|----------|----------|----------|
 | 00000000 | 00000000 | 00000000 | 00000000 |
 | 00000000 | 00000000 | 00000000 | 00000000 |
@@ -102,7 +101,7 @@ EP - En Passant, EPD - En Passant Direction
 
 ---
 
-## SLICES 24 - 28: History Buffer
+## SLICES 25 - 28: History Buffer
 
 |   t-1    |   t-2    |   t-3    |   t-4    |
 |----------|----------|----------|----------|
