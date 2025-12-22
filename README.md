@@ -10,7 +10,7 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ---
 
-## ROW 1 — White Pieces
+## SLICE 1 — White Pieces
 
 | W  Pawns | W  Rooks | WKnights | WBishops |
 |----------|----------|----------|----------|
@@ -25,7 +25,7 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ---
 
-## ROW 2 — White Major + Black Pawns
+## SLICE 2 — White Major + Black Pawns
 
 | W  Queen | W   King | B  Pawns | B  Rooks |
 |----------|----------|----------|----------|
@@ -40,7 +40,7 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ---
 
-## ROW 3 — Black Pieces
+## SLICE 3 — Black Pieces
 
 | BKnights | BBishops | B  Queen | B   King |
 |----------|----------|----------|----------|
@@ -55,7 +55,7 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ---
 
-## ROW 4 — Castling Rights (Initial)
+## SLICE 4 — Castling Rights (Initial)
 
 | White KS | White QS | Black KS | Black QS |
 |----------|----------|----------|----------|
@@ -70,7 +70,7 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ---
 
-## ROW 5 — Castling Availability (Path Clear)
+## SLICE 5 — Castling Availability (Path Clear)
 
 | White KS | White QS | Black KS | Black QS |
 |----------|----------|----------|----------|
@@ -85,7 +85,7 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ---
 
-## ROW 6 — En Passant
+## SLICE 6 — En Passant
 
 | EP White | EP Black | Reserved | Reserved |
 |----------|----------|----------|----------|
@@ -100,7 +100,7 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ---
 
-## ROW 7 — History Buffer
+## SLICE 7 — History Buffer
 
 |   t-1    |   t-2    |   t-3    |   t-4    |
 |----------|----------|----------|----------|
