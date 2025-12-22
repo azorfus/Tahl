@@ -74,8 +74,6 @@ def process_pgn(pgn_data_array):
         game = chess.pgn.read_game(io.StringIO(each_pgn))
         board = game.board()
 
-        buffer_arrays = np.zeros((4, 8, 8), dtype=np.int8)
-
         for move in game.mainline_moves():
             
             # DEBUG 
@@ -186,11 +184,6 @@ def process_pgn(pgn_data_array):
 
                 print(board)
                 print_castling_status(game_status)
-
-            # Buffering positions
-
-
-
 
 
             board.push(move)

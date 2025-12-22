@@ -101,7 +101,7 @@ EP - En Passant, EPO - En Passant Origin
 
 ---
 
-## SLICES 25 - 28: History Buffer
+## SLICES 25 - 28: Empty (Maybe for future use)
 
 |   t-1    |   t-2    |   t-3    |   t-4    |
 |----------|----------|----------|----------|
