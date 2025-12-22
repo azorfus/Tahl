@@ -181,37 +181,13 @@ def process_pgn(pgn_data_array):
 
     return pgn_bitboards
 
-'''
-                for z in bitboard[20:24]:
-                    for y in z:
-                        for x in y:
-                            print(x, end=" ")
-                        print()
-                    print()
-
-                print(board)
-                print_castling_status(game_status)
-
-
-            for z in bitboard:
-                for y in z:
-                    for x in y:
-                        print(x, end=" ")
-                    print()
-                print()
-                
-            break
-'''
-
-
 def flush_pgn(output_file, pgn_bitboards):
     
-    with open(output_file, 'w') as ofile:
+    with open(output_file, "ab") as ofile:
         for bitboard in pgn_bitboards:
             flat_board = bitboard.flatten()
-            flat_board = flat_board.tolist()
-            ofile.write("".join(map(str, flat_board)))
-
+            packed_board = np.packbits(flat_board)
+            ofile.write(packed_board.tobytes())
 
 def main():
     if len(sys.argv) <= 1:
@@ -226,30 +202,50 @@ def main():
     else:
         output_file = sys.argv[2]
 
+    option = input("[!] Warning, output file is being cleared... Continue? [y/n] ")
+    option = option.strip().lower()
+    if option in ("y", "yes"):
+        open(output_file, "w").close()
+        print("\n[*] Cleared output file...")
+
+    elif option in ("n", "no"):
+        print("[!] Exiting! Specify a fresh output file!")
+        return
+
+    else:
+        print("[!] Invalid input. Quitting!")
+        return 
+
     print(f"[*] Parsing {filename} and outputting to {output_file}")
 
     with open(filename, 'r') as source:
-        pgn_limit = 1000
-        pgn_count = 0
-        pgn_data_array = []
-        while pgn_count <= pgn_limit:
-            line = source.readline()
-            
-            if line[0] == '1':
-                pgn_data_array.append(line)
-                pgn_count += 1
-            else:
-                continue
 
-            if pgn_count == pgn_limit:
-                print(f"[*] Buffer pgn Load limit reached ({pgn_count})")
-                print(f"[*] Flushing and processing the loaded pgn Data...")
-                pgn_bitboards = process_pgn(pgn_data_array)
-                pgn_data_array.clear()
-                flush_pgn(output_file, pgn_bitboards)
-                pgn_bitboards.clear()
-                print(f"[*] Flushed the data to {output_file}!")
+        pgn_pages = 100
+        for i in range(pgn_pages):
+            pgn_limit = 1000
+            pgn_count = 0
+            pgn_data_array = []
 
+            print(f"\n[*] PGN Page {i+1}/{pgn_pages} being processed. Each page is of size {pgn_limit} games.\n")
+
+            while pgn_count <= pgn_limit:
+                line = source.readline()
+                
+                if line[0] == '1':
+                    pgn_data_array.append(line)
+                    pgn_count += 1
+                else:
+                    continue
+
+                if pgn_count == pgn_limit:
+                    print(f"[*] Buffer PGN load limit reached ({pgn_count})")
+                    print(f"[*] Processing and flushing the loaded pgn Data...")
+                    pgn_bitboards = process_pgn(pgn_data_array)
+                    pgn_data_array.clear()
+                    flush_pgn(output_file, pgn_bitboards)
+                    pgn_bitboards.clear()
+    
+    print(f"\n[**] Flushed the data to {output_file}! Total data flushed: {pgn_limit * pgn_pages} games.")
 
 if __name__ == "__main__":
     main()

@@ -26,7 +26,7 @@ Orientation: rank 8 (top) → rank 1 (bottom), files a → h
 
 ## SLICES 5 - 8: Piece information
 
-| W  Queen | W   King | B  Pawns | W  Rooks |
+| W  Queen | W   King | B  Pawns | B  Rooks |
 |----------|----------|----------|----------|
 | 00010000 | 00001000 | 00000000 | 00000000 |
 | 00000000 | 00000000 | 00000000 | 00000000 |
