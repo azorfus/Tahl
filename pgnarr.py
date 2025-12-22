@@ -23,85 +23,30 @@ board_map = {
     "h5": (7, 4), "h6": (7, 5), "h7": (7, 6), "h8": (7, 7),
 }
 
-''' Initial board manually typed out for ease of visualization of the input format
-root_bitboard = [
-
-    # PIECE INFO
-
-    [[0, 0, 0, 0, 0, 0, 0, 0],   [[0, 0, 0, 0, 0, 0, 0, 0],    [[0, 0, 0, 0, 0, 0, 0, 0],    [[1, 0, 0, 0, 0, 0, 0, 1],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [1, 1, 1, 1, 1, 1, 1, 1],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0]],   [0, 0, 0, 0, 0, 0, 0, 0]],    [1, 0, 0, 0, 0, 0, 0, 1]],    [0, 0, 0, 0, 0, 0, 0, 0]],
-
-    [[0, 1, 0, 0, 0, 0, 1, 0],   [[0, 0, 0, 0, 0, 0, 0, 0],    [[0, 0, 0, 0, 0, 0, 0, 0],    [[0, 0, 1, 0, 0, 1, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0]],   [0, 1, 0, 0, 0, 0, 1, 0]],    [0, 0, 1, 0, 0, 1, 0, 0]],    [0, 0, 0, 0, 0, 0, 0, 0]],
-     
-    [[0, 0, 0, 0, 0, 0, 0, 0],   [[0, 0, 0, 0, 1, 0, 0, 0],    [[0, 0, 0, 0, 0, 0, 0, 0],    [[0, 0, 0, 1, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 1, 0, 0, 0, 0]],   [0, 0, 0, 0, 0, 0, 0, 0]],    [0, 0, 0, 0, 1, 0, 0, 0]],    [0, 0, 0, 0, 0, 0, 0, 0]],
-
-    # WHITE CASTLING RIGHTS AND CASTLE POSSIBILITY
-
-    [[1, 1, 1, 1, 1, 1, 1, 1],   [[1, 1, 1, 1, 1, 1, 1, 1],    [[0, 0, 0, 0, 0, 0, 0, 0],    [[0, 0, 0, 1, 0, 0, 0, 0],    
-     [1, 1, 1, 1, 1, 1, 1, 1],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],    
-     [1, 1, 1, 1, 1, 1, 1, 1],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],    
-     [1, 1, 1, 1, 1, 1, 1, 1],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [1, 1, 1, 1, 1, 1, 1, 1],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [1, 1, 1, 1, 1, 1, 1, 1],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [1, 1, 1, 1, 1, 1, 1, 1],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [1, 1, 1, 1, 1, 1, 1, 1]],   [1, 1, 1, 1, 1, 1, 1, 1]],    [0, 0, 0, 0, 1, 0, 0, 0]],    [0, 0, 0, 0, 0, 0, 0, 0]], 
-
-    # BLACK CASTLING RIGHTS AND CASTLE POSSIBILITY
-
-    [[1, 1, 1, 1, 1, 1, 1, 1],   [[1, 1, 1, 1, 1, 1, 1, 1],    [[0, 0, 0, 0, 0, 0, 0, 0],    [[0, 0, 0, 1, 0, 0, 0, 0],    
-     [1, 1, 1, 1, 1, 1, 1, 1],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],    
-     [1, 1, 1, 1, 1, 1, 1, 1],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],    
-     [1, 1, 1, 1, 1, 1, 1, 1],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [1, 1, 1, 1, 1, 1, 1, 1],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [1, 1, 1, 1, 1, 1, 1, 1],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [1, 1, 1, 1, 1, 1, 1, 1],    [1, 1, 1, 1, 1, 1, 1, 1],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [1, 1, 1, 1, 1, 1, 1, 1]],   [1, 1, 1, 1, 1, 1, 1, 1]],    [0, 0, 0, 0, 1, 0, 0, 0]],    [0, 0, 0, 0, 0, 0, 0, 0]], 
-
-     # EN PASSANT - WHITE, BLACK
-     
-    [[0, 0, 0, 0, 0, 0, 0, 0],   [[0, 0, 0, 0, 0, 0, 0, 0],    [[0, 0, 0, 0, 0, 0, 0, 0],    [[0, 0, 0, 0, 0, 0, 0, 0],    
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],    
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],    
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [0, 0, 0, 0, 0, 0, 0, 0]],   [0, 0, 0, 0, 0, 0, 0, 0]],    [0, 0, 0, 0, 0, 0, 0, 0]],    [0, 0, 0, 0, 0, 0, 0, 0]], 
-
-     # FOUR BUFFERRED PREVIOUS POSITIONS
-     
-    [[0, 0, 0, 0, 0, 0, 0, 0],   [[0, 0, 0, 0, 0, 0, 0, 0],    [[0, 0, 0, 0, 0, 0, 0, 0],    [[0, 0, 0, 0, 0, 0, 0, 0],    
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],    
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],    
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [0, 0, 0, 0, 0, 0, 0, 0],    [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],     [0, 0, 0, 0, 0, 0, 0, 0],       
-     [0, 0, 0, 0, 0, 0, 0, 0]],   [0, 0, 0, 0, 0, 0, 0, 0]],    [0, 0, 0, 0, 0, 0, 0, 0]],    [0, 0, 0, 0, 0, 0, 0, 0]], 
-]
-'''
-
 numpy_init_bitboard = np.zeros((28, 8, 8), dtype=np.int8)
+
+def check_empty_squares(board, *args):
+    
+    square_status_array = []
+    
+    for str_square in args:
+        square = chess.parse_square(str_square)
+        square_status = (board.piece_at(square) is None)
+        square_status_array.append(square_status)
+
+    return all(square_status_array)
+
+# DEBUG FUNCTION
+def print_castling_status(gs):
+    print(
+        "\n=== CASTLING STATUS ===\n"
+        f"WHITE  | King-side  | right: {gs['white_ks_cright']} | available: {gs['white_ks_cavail']}\n"
+        f"       | Queen-side | right: {gs['white_qs_cright']} | available: {gs['white_qs_cavail']}\n"
+        "\n"
+        f"BLACK  | King-side  | right: {gs['black_ks_cright']} | available: {gs['black_ks_cavail']}\n"
+        f"       | Queen-side | right: {gs['black_qs_cright']} | available: {gs['black_qs_cavail']}\n"
+        "========================\n"
+    )
 
 def process_pgn(pgn_data_array):
 
@@ -109,10 +54,26 @@ def process_pgn(pgn_data_array):
                    chess.BISHOP, chess.KING, chess.QUEEN]
     
     for each_pgn in pgn_data_array:
+
         game = chess.pgn.read_game(io.StringIO(each_pgn))
         board = game.board()
 
         for move in game.mainline_moves():
+            
+            # DEBUG 
+            game_status = {
+                "white_ks_cright": False,
+                "white_ks_cavail": False,
+                
+                "white_qs_cright": False,
+                "white_qs_cavail": False,
+
+                "black_ks_cright": False,
+                "black_ks_cavail": False,
+
+                "black_qs_cright": False,
+                "black_qs_cavail": False
+            }
             
             bitboard = np.zeros((28, 8, 8), dtype=np.int8)
             
@@ -126,15 +87,64 @@ def process_pgn(pgn_data_array):
                     bitboard[i + 6][sq // 8][sq % 8] = 1
 
             # Update castling information
-            if bool(board.castling_rights & chess.BB_A1): # White can castle with a1 rook
-                # Slice 12 and 13 are for white castling rights and castling possibility with the h1 rook
+
+            # *** WHITE ***
+
+            # White king's side
+            if bool(board.castling_rights & chess.BB_H1): # White can castle with a1 rook
+                # Slice 12 and 13 are for white castling rights with the king's side and castling possibility with the a1 rook
                 bitboard[12] = np.ones((8, 8), dtype=np.int8)
+
+                game_status["white_ks_cright"] = True
+
+            if bool(board.castling_rights & chess.BB_H1) and check_empty_squares(board, "f1", "g1"):
+                bitboard[13] = np.ones((8, 8), dtype=np.int8)
+
+                game_status["white_ks_cavail"] = True
             
-            if bool(board.castling_rights & chess.BB_H1): # White can castle with h1 rook
-                # Slice 14 and 15 are for white castling rights and castling possibility with the h1 rook
+            # White queen's side
+            if bool(board.castling_rights & chess.BB_A1): # White can castle with h1 rook
+                # Slice 14 and 15 are for white castling rights with the queen's and castling possibility with the h1 rook
                 bitboard[14] = np.ones((8, 8), dtype=np.int8)
 
+                game_status["white_qs_cright"] = True
 
+            if bool(board.castling_rights & chess.BB_A1) and check_empty_squares(board, "b1", "c1", "d1"):
+                bitboard[13] = np.ones((8, 8), dtype=np.int8)
+
+                game_status["white_qs_cavail"] = True
+
+            # *** BLACK ***
+
+            # Black king's side
+            if bool(board.castling_rights & chess.BB_H8): # Black can castle with h8 rook
+                # Slice 16 and 17 are for black's castling rights with the king's side and castling possibility with the h8 rook
+                bitboard[16] = np.ones((8, 8), dtype=np.int8)
+
+                game_status["black_ks_cright"] = True
+
+            if bool(board.castling_rights & chess.BB_H8) and check_empty_squares(board, "f8", "g8"):
+                bitboard[17] = np.ones((8, 8), dtype=np.int8)
+
+                game_status["black_ks_cavail"] = True
+
+            # Black queen's side
+            if bool(board.castling_rights & chess.BB_A8): # Black can castle with a8 rook
+                # Slice 18 and 19 are for black's castling rights with the queen's side and castling possibility with the h8 rook
+                bitboard[18] = np.ones((8, 8), dtype=np.int8)
+
+                game_status["black_qs_cright"] = True
+
+            if bool(board.castling_rights & chess.BB_A8) and check_empty_squares(board, "b8", "c8", "d8"):
+                bitboard[19] = np.ones((8, 8), dtype=np.int8)
+
+                game_status["black_qs_cavail"] = True
+
+            print(board)
+            print_castling_status(game_status)
+
+            board.push(move)
+'''
             for z in bitboard:
                 for y in z:
                     for x in y:
@@ -143,14 +153,7 @@ def process_pgn(pgn_data_array):
                 print()
                 
             break
-
-            board.push(move)
-
-        break
-
-
-
-
+'''
 
 
 def flush_pgn(output_file, pgn_bit_slices):
