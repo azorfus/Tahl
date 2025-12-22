@@ -72,12 +72,20 @@ def process_pgn(pgn_data_array):
     pgn_bitboards = []
     
     for each_pgn in pgn_data_array:
-
         game = chess.pgn.read_game(io.StringIO(each_pgn))
         board = game.board()
 
         for move in game.mainline_moves():
             
+            bitboard = np.zeros((28, 8, 8), dtype=np.int8)
+
+            if board.turn == chess.WHITE:
+                bitboard[24] = np.zeros((8, 8), dtype=np.int8)
+            else:
+                bitboard[24] = np.ones((8, 8), dtype=np.int8)
+            
+            print(move.eval)
+
             # DEBUG 
             game_status = {
                 "white_ks_cright": False,
@@ -92,8 +100,6 @@ def process_pgn(pgn_data_array):
                 "black_qs_cright": False,
                 "black_qs_cavail": False
             }
-            
-            bitboard = np.zeros((28, 8, 8), dtype=np.int8)
             
             # First six slices are for white piece info in order of pawn, rook, knight, bishop, king and queen
             # Next six slices act as the black piece info in the same order.
