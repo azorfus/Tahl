@@ -23,6 +23,22 @@ board_map = {
     "h5": (7, 4), "h6": (7, 5), "h7": (7, 6), "h8": (7, 7),
 }
 
+# How the bitboard input is sliced and designed:
+# First 12 slices are for piece information
+
+# White pawn placement, White rook, knight, bishop, king and queen (6)
+
+# The next 6 are for black in the same order (12)
+
+# The next 4 are white castling status slices (16)
+# The next 4 are black castling status slices (20)
+
+# The next four are for enpassant information (24)
+# First two for white: one for enpassant squares, the next for direction
+# The next two follow the same order but for black
+
+# Last 4 slices are for buffered storage of previous positions (28)
+
 numpy_init_bitboard = np.zeros((28, 8, 8), dtype=np.int8)
 
 def check_empty_squares(board, *args):
@@ -139,6 +155,8 @@ def process_pgn(pgn_data_array):
                 bitboard[19] = np.ones((8, 8), dtype=np.int8)
 
                 game_status["black_qs_cavail"] = True
+
+            # Checking and updating enpassant status slices
 
             print(board)
             print_castling_status(game_status)
