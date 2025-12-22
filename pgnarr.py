@@ -248,6 +248,7 @@ def main():
                 pgn_data_array.clear()
                 flush_pgn(output_file, pgn_bitboards)
                 pgn_bitboards.clear()
+                print(f"[*] Flushed the data to {output_file}!")
 
 
 if __name__ == "__main__":
