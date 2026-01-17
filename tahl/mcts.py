@@ -79,3 +79,5 @@ class MCTSNode:
 			pointer.score += result
 			pointer = pointer.parent
 		
+class MCTSTree:
+
