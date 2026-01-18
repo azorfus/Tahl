@@ -1,5 +1,8 @@
 import chess
+import math
 import random
+
+exploitation_parameter = 1.414
 
 class MCTSNode:
 
@@ -50,6 +53,31 @@ class MCTSNode:
 	def evaluate(self, given_state):
 		return 10
 
+	def best_child(self, c):
+		if len(self.children) == 0:
+			return None
+
+		ucb = 0.0
+		m = -1.0
+
+		best = self.children[0]
+
+		for child in self.children:
+			q = child.score/child.simulations
+			ucb = c * math.sqrt(math.log(self.simulations/child.simulations))
+
+			if self.turn:
+				ucb = ucb + q
+			else:
+				ucb = ucb - q
+
+			if ucb > m:
+				m = ucb
+				best = child
+
+		return best
+		
+
 	def _expand(self):
 		temp_actions = self.untried_actions[1:]
 		move = self.untried_actions[0]
@@ -80,4 +108,34 @@ class MCTSNode:
 			pointer = pointer.parent
 		
 class MCTSTree:
+	root = None
 
+	def __init__(self, state):
+		self.root = MCTSNode(state)
+	
+	def run_search(self, iterations):
+		result = 0.0
+		for i in range(0, iterations):
+			print("Starting iteration:", i)
+			walker = self.root
+
+			# Selection
+			while not(walker.is_terminal(walker.state) and walker.is_fully_expanded()):
+				print("Stuck here")
+				conservation = walker
+				walker = walker.best_child(exploitation_parameter)
+				if walker == None:
+					walker = conservation
+					break
+
+			# Expansion
+			if not walker.is_terminal(walker.state):
+				walker._expand()
+
+			# Rollout
+			result = walker._rollout()
+
+			# Backpropagate
+			walker._backpropagate(result)
+
+		self.score = result
