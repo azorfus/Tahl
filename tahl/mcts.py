@@ -1,8 +1,10 @@
 import chess
 import math
 import random
+from tqdm import tqdm
 
 exploitation_parameter = 1.414
+iterations = 2
 
 class MCTSNode:
 
@@ -34,7 +36,7 @@ class MCTSNode:
 	def actions_to_try(self, state):
 		return state.legal_moves
 
-	def is_terminal(self, state, claim_draw_t=True):
+	def is_terminal(self, claim_draw_t=True):
 		# claim_draw is a built-in parameter for the chess.Board.outcome() function
 		outcome = self.state.outcome(claim_draw=claim_draw_t)
 		
@@ -44,7 +46,7 @@ class MCTSNode:
 		return False	
 
 	def is_fully_expanded(self):
-		return (self.is_terminal() and self.untried_actions.empty())
+		return (self.is_terminal() or len(self.untried_actions) == 0)
 	
 	def flower(self):
 		while self.untried_actions != []:
@@ -75,6 +77,7 @@ class MCTSNode:
 				m = ucb
 				best = child
 
+		print(best.state)
 		return best
 		
 
@@ -86,7 +89,7 @@ class MCTSNode:
 		new_state = self.state
 		new_state.push(move)
 		
-		child = MCTSNode(self, new_state)
+		child = MCTSNode(parent=self, state=new_state, action=move)
 		self.children = self.children.append(child)
 
 	def _rollout(self):
@@ -94,7 +97,7 @@ class MCTSNode:
 
 		while self.is_terminal(sim_state) != True:
 			legal_moves = self.actions_to_try(sim_state)
-			move = legal_moves[randint(0, len(legal_moves) - 1)]
+			move = random.choice(list(legal_moves))
 			sim_state.push(move)
 
 		score = self.evaluate(sim_state)
@@ -102,26 +105,29 @@ class MCTSNode:
 
 	def _backpropagate(self, result):
 		pointer = self
-		while pointer != None:
+		while pointer.parent is not None:
 			pointer.simulations += 1
 			pointer.score += result
 			pointer = pointer.parent
+
+		pointer.simulations += 1
+		pointer.score += result
 		
 class MCTSTree:
 	root = None
 
 	def __init__(self, state):
-		self.root = MCTSNode(state)
+		self.root = MCTSNode(state=state)
 	
 	def run_search(self, iterations):
 		result = 0.0
-		for i in range(0, iterations):
-			print("Starting iteration:", i)
+		for i in tqdm(range(0, iterations)):
+			# print("Starting iteration:", i)
 			walker = self.root
 
 			# Selection
-			while not(walker.is_terminal(walker.state) and walker.is_fully_expanded()):
-				print("Stuck here")
+			while not(walker.is_terminal(walker.state)) and walker.is_fully_expanded():
+				# print("Stuck here")
 				conservation = walker
 				walker = walker.best_child(exploitation_parameter)
 				if walker == None:
@@ -129,7 +135,7 @@ class MCTSTree:
 					break
 
 			# Expansion
-			if not walker.is_terminal(walker.state):
+			if not walker.is_terminal(walker.state) and not(walker.is_fully_expanded()):
 				walker._expand()
 
 			# Rollout
@@ -139,3 +145,10 @@ class MCTSTree:
 			walker._backpropagate(result)
 
 		self.score = result
+
+if __name__ == "__main__":
+	board = chess.Board()
+	tree = MCTSTree(board)
+	tree.run_search(iterations)
+	print(tree.root.state)
+	tree.root.best_child(exploitation_parameter)
