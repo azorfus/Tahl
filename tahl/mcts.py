@@ -1,10 +1,11 @@
 import chess
 import math
 import random
+import time
 from tqdm import tqdm
 
 exploitation_parameter = 1.414
-iterations = 2
+iterations = 100
 
 class MCTSNode:
 
@@ -29,31 +30,35 @@ class MCTSNode:
 		self.state = state
 		self.action = action
 
-		untried_actions = self.actions_to_try(state)
-		terminal = self.is_terminal(state)
-		turn = self.state.turn == chess.Color
+		self.untried_actions = list(self.actions_to_try(state))
+		self.terminal = self.is_terminal(state)
+		self.turn = self.state.turn == chess.Color
 
 	def actions_to_try(self, state):
 		return state.legal_moves
 
-	def is_terminal(self, claim_draw_t=True):
+	def is_terminal(self, state_t, claim_draw_t=True):
 		# claim_draw is a built-in parameter for the chess.Board.outcome() function
-		outcome = self.state.outcome(claim_draw=claim_draw_t)
-		
-		if outcome != None:
+		outcome = state_t.outcome(claim_draw=claim_draw_t)
+		if outcome is not None:
 			return True
 
 		return False	
 
 	def is_fully_expanded(self):
-		return (self.is_terminal() or len(self.untried_actions) == 0)
+		return (self.is_terminal(self.state) or len(self.untried_actions) == 0)
 	
 	def flower(self):
 		while self.untried_actions != []:
 			self._expand()
 	
 	def evaluate(self, given_state):
-		return 10
+		if given_state.is_checkmate():
+			if given_state.turn == chess.WHITE:
+				return -1
+			else:
+				return 1
+		return 0
 
 	def best_child(self, c):
 		if len(self.children) == 0:
@@ -65,8 +70,8 @@ class MCTSNode:
 		best = self.children[0]
 
 		for child in self.children:
-			q = child.score/child.simulations
-			ucb = c * math.sqrt(math.log(self.simulations/child.simulations))
+			q = (child.score/child.simulations if child.simulations != 0 else 0)
+			ucb = (c * math.sqrt(math.log(self.simulations/child.simulations)) if child.simulations != 0 else 0)
 
 			if self.turn:
 				ucb = ucb + q
@@ -82,9 +87,7 @@ class MCTSNode:
 		
 
 	def _expand(self):
-		temp_actions = self.untried_actions[1:]
-		move = self.untried_actions[0]
-		self.untried_actions = temp_actions
+		move = self.untried_actions.pop()
 
 		new_state = self.state
 		new_state.push(move)
@@ -93,9 +96,9 @@ class MCTSNode:
 		self.children = self.children.append(child)
 
 	def _rollout(self):
-		sim_state = self.state
+		sim_state = self.state.copy()
 
-		while self.is_terminal(sim_state) != True:
+		while not self.is_terminal(sim_state):
 			legal_moves = self.actions_to_try(sim_state)
 			move = random.choice(list(legal_moves))
 			sim_state.push(move)
@@ -104,14 +107,16 @@ class MCTSNode:
 		return score
 
 	def _backpropagate(self, result):
-		pointer = self
-		while pointer.parent is not None:
-			pointer.simulations += 1
-			pointer.score += result
-			pointer = pointer.parent
+		self.score += result
+		self.simulations += 1
+		# pointer = self
+		# while pointer.parent is not None:
+		# 	pointer.simulations += 1
+		# 	pointer.score += result
+		# 	pointer = pointer.parent
 
-		pointer.simulations += 1
-		pointer.score += result
+		# pointer.simulations += 1
+		# pointer.score += result
 		
 class MCTSTree:
 	root = None
@@ -123,7 +128,7 @@ class MCTSTree:
 		result = 0.0
 		for i in tqdm(range(0, iterations)):
 			# print("Starting iteration:", i)
-			walker = self.root
+			walker = MCTSNode(parent=None, state=self.root.state.copy(), action=None)
 
 			# Selection
 			while not(walker.is_terminal(walker.state)) and walker.is_fully_expanded():
@@ -150,5 +155,5 @@ if __name__ == "__main__":
 	board = chess.Board()
 	tree = MCTSTree(board)
 	tree.run_search(iterations)
-	print(tree.root.state)
 	tree.root.best_child(exploitation_parameter)
+	tree.root.state.turn
