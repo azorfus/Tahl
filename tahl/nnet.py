@@ -1,9 +1,17 @@
 import numpy as np
 import pandas as pd
 
-data = pd.read_csv("training_data.csv")
+try:
+	data = pd.read_csv("training_data.csv")
+except Exception as e:
+	print("Training data not found.")
+	print("Error (CSV):", e)
 
 # Activation functions
+def sigmoid(Z):
+	A = 1 / (1 + np.exp(-Z))  
+	return A
+
 def ReLU(Z):
 	return np.maximum(Z, 0)
 
@@ -11,22 +19,53 @@ def softmax(Z):
 	A = np.exp(Z) / sum(np.exp(Z))
 	return A
 
-class nn_layer:
-	w = np.array()
-	b = np.array()
+class NNlayer:
+	w = None
+	b = None
+	z = None
 
-class network:
-	inl = nn_layer()
-	outl = nn_layer()
-	hiddenl = []
+	def __init__(self, shape=[1, 1]):
+		self.w = np.random.random(shape)
+		self.b = np.zeros(shape, dtype=float)
+		
+		# holds previous layer's output value
+		self.z = self.w
 
-	def __init__(self, hidden_no = 1):
-		for i in range(hidden_no):
-			hiddenl.append(nn_layer())
+class Network:
+	layers = []
 
-	def forward_prop(self):
+	def __init__(self, layer_count = 1, shapes=[[1, 1],
+												[1, 1],
+												[1, 1]]):
+		if layer_count < 1:
+			print("Enter valid layer count")
+			return None
+		elif layer_count > 1 and shapes == [[1, 1],
+											[1, 1],
+											[1, 1]]:
+			print("Enter valid layers")
+			return None
 
-	def back_prop(self);
+		for i in range(layer_count + 2):
+			self.layers.append(NNlayer(shapes[i]))
+
+	def check(self):
+		for i in self.layers:
+			print(i.w)
+			print(i.b)
+			print(i.z)
+			print()
+
+	def forward_prop(self, l_index):
+		try:
+			Z = np.dot(self.layers[l_index].z, self.layers[l_index].w) + self.layers[l_index].b
+			Z = sigmoid(Z)
+			self.layers[l_index].z = Z
+		except Exception as e:
+			print("Error (invalid layer definition):", e)
+
+def back_prop():
+		pass
 
 def gradient_descent(X, Y, iterations, alpha):
 	return None
