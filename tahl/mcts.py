@@ -5,7 +5,7 @@ import time
 from tqdm import tqdm
 
 exploitation_parameter = 1.414
-iterations = 100
+iterations = 10000
 
 class MCTSNode:
 
@@ -97,11 +97,12 @@ class MCTSNode:
 
 	def _rollout(self):
 		sim_state = self.state.copy()
-
-		while not self.is_terminal(sim_state):
+		t = 0
+		while not self.is_terminal(sim_state) and t < 50:
 			legal_moves = self.actions_to_try(sim_state)
 			move = random.choice(list(legal_moves))
 			sim_state.push(move)
+			t = t + 1
 
 		score = self.evaluate(sim_state)
 		return score
@@ -121,8 +122,8 @@ class MCTSNode:
 class MCTSTree:
 	root = None
 
-	def __init__(self, state):
-		self.root = MCTSNode(state=state)
+	def __init__(self, node):
+		self.root = MCTSNode(state=node.state)
 	
 	def run_search(self, iterations):
 		result = 0.0

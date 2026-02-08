@@ -3,10 +3,6 @@ import pandas as pd
 
 data = pd.read_csv("training_data.csv")
 
-class nn_layer:
-	w = np.array()
-	b = np.array()
-
 # Activation functions
 def ReLU(Z):
 	return np.maximum(Z, 0)
@@ -15,21 +11,22 @@ def softmax(Z):
 	A = np.exp(Z) / sum(np.exp(Z))
 	return A
 
-def init_params():
-	layer1 = nn_layer()
-	layer2 = nn_layer()
-	layer3 = nn_layer()
+class nn_layer:
+	w = np.array()
+	b = np.array()
 
-	return layer1, layer2, layer3
+class network:
+	inl = nn_layer()
+	outl = nn_layer()
+	hiddenl = []
 
-def forward_prop(layer1, layer2, layer3):
-	return None
+	def __init__(self, hidden_no = 1):
+		for i in range(hidden_no):
+			hiddenl.append(nn_layer())
 
-def back_prop():
-	return None
+	def forward_prop(self):
 
-def update_params():
-	return None
+	def back_prop(self);
 
 def gradient_descent(X, Y, iterations, alpha):
 	return None
