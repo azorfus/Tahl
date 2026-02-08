@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 exploitation_parameter = 1.414
 iterations = 10000
+iteration_depth = 100
 
 class MCTSNode:
 
@@ -98,7 +99,7 @@ class MCTSNode:
 	def _rollout(self):
 		sim_state = self.state.copy()
 		t = 0
-		while not self.is_terminal(sim_state) and t < 50:
+		while not self.is_terminal(sim_state) and t < iteration_depth:
 			legal_moves = self.actions_to_try(sim_state)
 			move = random.choice(list(legal_moves))
 			sim_state.push(move)
