@@ -3,12 +3,13 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset, random_split
 
-try:
-	data = pd.read_csv("training_data.csv")
-except Exception as e:
-	print("Training data not found.")
-	print("Error (CSV):", e)
+# try:
+# 	data = pd.read_csv("training_data.csv")
+# except Exception as e:
+# 	print("Training data not found.")
+# 	print("Error (CSV):", e)
 
 
 # ------------------ Helpers ------------------
@@ -20,6 +21,7 @@ def exp(Z):
 	return torch.exp(torch.clip(Z, -500, 500))
 
 # ---------------------------------------------
+
 
 # ----------- Activation functions ------------
 
@@ -39,9 +41,11 @@ def softmax(Z):
 
 # ---------------------------------------------
 
+
 # --------- Basic feed foward network ---------
+
 class FFNN(nn.Module):
-	def __init__(self, input_dim: int, hidden_dim: list[int], output_dim: int):
+	def __init__(self, input_dim: int, output_dim: int, hidden_dim: list[int] = []):
 		'''
 		For initialization of NN, we pass the no. of input and output neurons, as well as a list containing the no. of
 		neurons for each hidden layer
@@ -85,61 +89,104 @@ class FFNN(nn.Module):
 # ---------------------------------------------
 
 
+# ---------------- Training -------------------
 
-# ============ OLD CODE, REDUNDANT ============
+def training(model: nn.Module, 
+			 X: torch.Tensor, 
+			 y: torch.Tensor, 
+			 epochs: int, 
+			 batch_size: int, 
+			 lr: float, 
+			 train_ratio: float):
+	'''
+	Inputs:
+		model: Neural network class object, can have any custom model architecture (even non-NN technically)
+		X: (N, 28, 8, 8) tensor - Set of positions, these should already be processed by the input formatting
+		y: (N, ???) - Set of moves, these should also be processed based on whatever format we choose
+		epochs: int
+		batch_size: int
+		lr: float
+		train_ratio: float
 
-# class NNlayer:
-# 	w = None
-# 	b = None
-# 	z = None
-
-# 	def __init__(self, shape=[1, 1]):
-# 		self.w = np.random.random(shape)
-# 		self.b = np.zeros(shape, dtype=float)
+	Output:
+		model: Same Neural Network class object, but with trained parameters
 		
-# 		# holds previous layer's output value
-# 		self.z = self.w
+	This function will fully train a model with the data, to invoke simple do:
+		model = training(...)
+	'''
+	# TODO: Consider adding validation for correct inputs, this can include checking if the model architecture is
+	# compatible with the data
 
-# class Network:
-# 	layers = []
+	# This is important, it is also important to ensure the tensor objects you're working with are on the same hardware
+	device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
+	model = model.to(device)
+	if device == 'cpu':
+		print('[WARNING] Training being done on cpu device')
 
-# 	def __init__(self, layer_count = 1, shapes=[[1, 1],
-# 												[1, 1],
-# 												[1, 1]]):
-# 		if layer_count < 1:
-# 			print("Enter valid layer count")
-# 			return None
-# 		elif layer_count > 1 and shapes == [[1, 1],
-# 											[1, 1],
-# 											[1, 1]]:
-# 			print("Enter valid layers")
-# 			return None
+	data = TensorDataset(X, y)
 
-# 		for i in range(layer_count + 2):
-# 			self.layers.append(NNlayer(shapes[i]))
+	train_size = int(train_ratio * len(data))
+	val_size = len(data) - train_size
+	data_train, data_val = random_split(data, [train_size, val_size])
 
-# 	def check(self):
-# 		for i in self.layers:
-# 			print(i.w)
-# 			print(i.b)
-# 			print(i.z)
-# 			print()
+	train_loader = DataLoader(data_train, batch_size=batch_size, shuffle=True)
+	val_loader = DataLoader(data_val, batch_size=batch_size, shuffle=False)
 
-# 	def forward_prop(self, l_index):
-# 		try:
-# 			Z = np.dot(self.layers[l_index].z, self.layers[l_index].w) + self.layers[l_index].b
-# 			Z = sigmoid(Z)
-# 			self.layers[l_index].z = Z
-# 		except Exception as e:
-# 			print("Error (invalid layer definition):", e)
+	loss_fn = nn.CrossEntropyLoss() # This is a standard loss function but can be changed
+	optimizer = optim.Adam(model.parameters(), lr=lr)
 
-# def back_prop():
-# 		pass
+	print(f'[INFO] ------- Starting training on device: {device} -------')
+	for epoch in range(epochs):
 
-# def gradient_descent(X, Y, iterations, alpha):
-# 	return None
+		# ---------- Training Phase ----------
+		model.train() # Apparently this is a thing in torch which improves training quality
+		train_loss = 0.0
 
-# def make_predictions():
-# 	return None
+		for X_b, y_b in train_loader:
+			X_b, y_b = X_b.to(device), y_b.to(device)
 
-# =============================================
+			pred = model(X_b)
+			loss = loss_fn(pred, y_b)
+			optimizer.zero_grad()
+			loss.backward()
+			optimizer.step()
+
+			train_loss += loss.item() * X_b.size(0) # torch calculates avg loss, hence the multiply
+
+		epoch_train_loss = train_loss / len(data_train)
+
+		# ---------- Validation Phase ----------
+		model.eval() # Apparently this is also a thing and helps improve validation quality
+		val_loss = 0.0
+
+		with torch.no_grad(): # To disable gradient tracking and speed up validation
+			for X_b, y_b in val_loader:
+				X_b, y_b = X_b.to(device), y_b.to(device)
+
+				pred = model(X_b)
+				loss = loss_fn(pred, y_b)
+
+				val_loss += loss.item() * X_b.size(0)
+
+		epoch_val_loss = val_loss / len(data_val)
+
+		if (epoch + 1) % (epochs / 10) == 0:
+			print(f'[INFO] Epoch {(epoch + 1)}/{epochs} - train_loss={epoch_train_loss:.4f} | val_loss={epoch_val_loss:.4f}')
+
+	print('[INFO] ------- Training complete -------')
+	return model
+
+
+# ---------------------------------------------
+
+
+# -------------- Unit Tests -------------------
+
+if __name__ == '__main__':
+	print('[INFO] ======= Neural Network models testing start =======')
+
+	# Add some tests here
+
+	print('[INFO] ======= Neural Network models testing done =======')
+
+# ---------------------------------------------
