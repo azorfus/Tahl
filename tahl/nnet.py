@@ -120,7 +120,7 @@ def training(model: nn.Module,
 	# This is important, it is also important to ensure the tensor objects you're working with are on the same hardware
 	device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
 	model = model.to(device)
-	if device == 'cpu':
+	if device == torch.device('cpu'):
 		print('[WARNING] Training being done on cpu device')
 
 	data = TensorDataset(X, y)
@@ -185,7 +185,37 @@ def training(model: nn.Module,
 if __name__ == '__main__':
 	print('[INFO] ======= Neural Network models testing start =======')
 
-	# Add some tests here
+	torch.manual_seed(42)
+
+	# TODO: This line is being reused in training() as well, I'm a little lazy to fix this right now
+	device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
+
+	# Add unit tests here as and when needed
+
+	# ------------- FFNN Test ---------------
+
+	X_syn = torch.randn(1000, 2)
+	y_syn = (X_syn[:, 0] + X_syn[:, 1] > 0).long() # Binary classification. 1 if feat_1 + feat_2 > 0, else 0
+
+	model = FFNN(2, 2, [8])
+
+	training(model, X_syn, y_syn, epochs=20, batch_size=32, lr=0.01, train_ratio=0.8)
+
+	X_test_1 = torch.tensor([-0.33, 0.77]).to(device)
+	X_test_2 = torch.tensor([0.25, 0.15]).to(device)
+	X_test_3 = torch.tensor([-0.5, 0.1]).to(device)
+
+	y_pred_1, y_pred_2, y_pred_3 = torch.argmax(model(X_test_1)), torch.argmax(model(X_test_2)), torch.argmax(model(X_test_3))
+	y_test_1, y_test_2, y_test_3 = 1, 1, 0
+
+	if y_pred_1 == y_test_1: print(f'[PASS] FFNN Test-1 passed')
+	else: print(f'[FAIL] FFNN Test-1 failed, expected {y_test_1} but got {y_pred_1}')
+	if y_pred_2 == y_test_2: print(f'[PASS] FFNN Test-2 passed')
+	else: print(f'[FAIL] FFNN Test-2 failed, expected {y_test_2} but got {y_pred_2}')
+	if y_pred_3 == y_test_3: print(f'[PASS] FFNN Test-3 passed')
+	else: print(f'[FAIL] FFNN Test-3 failed, expected {y_test_3} but got {y_pred_3}')
+
+	# ----------------------------------------
 
 	print('[INFO] ======= Neural Network models testing done =======')
 
