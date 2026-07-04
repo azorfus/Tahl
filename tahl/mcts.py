@@ -155,7 +155,8 @@ class MCTSTree:
 
 if __name__ == "__main__":
 	board = chess.Board()
-	tree = MCTSTree(board)
+	root = MCTSNode(board)
+	tree = MCTSTree(root)
 	tree.run_search(iterations)
 	tree.root.best_child(exploitation_parameter)
 	tree.root.state.turn

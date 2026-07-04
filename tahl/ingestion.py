@@ -41,6 +41,10 @@ board_map = {
 
 numpy_init_bitboard = np.zeros((28, 8, 8), dtype=np.int8)
 
+#    ---------------------------------------------------------
+#    This is the start of the code block that does the pgn parsing
+#    ---------------------------------------------------------
+
 def check_empty_squares(board, *args):
     
     square_status_array = []
@@ -83,8 +87,6 @@ def process_pgn(pgn_data_array):
                 bitboard[24] = np.zeros((8, 8), dtype=np.int8)
             else:
                 bitboard[24] = np.ones((8, 8), dtype=np.int8)
-            
-            print(move.eval)
 
             # DEBUG 
             game_status = {
@@ -187,6 +189,67 @@ def process_pgn(pgn_data_array):
 
     return pgn_bitboards
 
+#    ---------------------------------------------------------
+#    This is the end of the code block that does the pgn parsing
+#    ---------------------------------------------------------
+
+# Essentially we are passing around a data input file along with it's pointer, which
+# basically points to the last pgn accessed. I thought it'd be a good idea to put them
+# together in a single object along with their methods. Probably more clean and efficient (?)
+class PGNMatter:
+    file_name = ""
+    file_pointer = 0
+    pgn_pointer = 0
+
+    def __init__(self, input_file, pgn_pointer = 0):
+        self.file_name = input_file
+
+        try:
+            self.file_pointer = open(file_name, 'r', encoding="utf-8")
+        except Exception as e:
+            print("[!!!] Error: Can't read input file, setting base paramenters to NULL. Reinitialize!")
+            print("[Python Error]:", e)
+
+        self.pgn_pointer = pgn_pointer
+
+    def read(self, quantity = 1024):
+        if file_pointer.closed():
+            print("[!!!] Error: File pointer closed! What are you reading?")
+            return 0
+
+        pgn_count = 0
+        return_buffer = []
+        while pgn_count < quantity:
+            line = file_pointer.readline()
+            # I'm basically building this to extract only the move lines, and they always start with
+            # 1. cause they're all game moves and start with 1st move :P
+            # I'm ignoring the game information for now
+            if line[0] == '1':
+                return_buffer.append(line)
+                pgn_count += 1
+        self.pgn_pointer += quantity
+        return return_buffer
+
+    def conv_to_torchtensor(self, data):
+        pass
+        
+
+    def __del__(self):
+        # ensuring that the underlying system stream closes safely when the object is destroyed
+        if hasattr(self, 'file_pointer') and not self.file_pointer.closed:
+            self.file_pointer.close()
+
+
+def alms(pgn_data, quantity = 1024):
+    raw_data = pgn_data.read(pgn_data, quantity)
+    tensor_data = pgn_data.conv_to_torchtensor(raw_data)
+    return tensor_data
+    
+
+''' 
+
+--- Bad deprecated code I wrote a long time ago ---
+    
 def flush_pgn(output_file, pgn_bitboards):
     
     with open(output_file, "ab") as ofile:
@@ -255,3 +318,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+'''
