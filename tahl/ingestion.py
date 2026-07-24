@@ -1,8 +1,11 @@
 import io
+import os
 import sys
 import chess
 import chess.pgn
 import numpy as np
+
+import torch
 
 board_map = {
     "a1": (0, 0), "a2": (0, 1), "a3": (0, 2), "a4": (0, 3),
@@ -39,7 +42,7 @@ board_map = {
 
 # Last 4 slices are for buffered storage of previous positions (28)
 
-numpy_init_bitboard = np.zeros((28, 8, 8), dtype=np.int8)
+numpy_init_bitboard = np.zeros((28, 8, 8), dtype=np.float32)
 
 #    ---------------------------------------------------------
 #    This is the start of the code block that does the pgn parsing
@@ -68,6 +71,11 @@ def print_castling_status(gs):
         "========================\n"
     )
 
+# You feed the function an array of pgn strings and it converts it to Tahl's custom input format
+# (as pgn bitboards) which then later needs to be converted into torch tensors for training Tahl's neural nets
+# PGN BITBOARD -> NUMPY ARRAY of size 28x8x8, datatype = float32
+# why 32 bit float for 0s and 1s? because easier to convert to float tensors in torch since
+# neural nets need float inputs for calculation (weights and biases are floats bruh)
 def process_pgn(pgn_data_array):
 
     piece_types = [chess.PAWN, chess.ROOK, chess.KNIGHT,
@@ -81,12 +89,12 @@ def process_pgn(pgn_data_array):
 
         for move in game.mainline_moves():
             
-            bitboard = np.zeros((28, 8, 8), dtype=np.int8)
+            bitboard = np.zeros((28, 8, 8), dtype=np.float32)
 
             if board.turn == chess.WHITE:
-                bitboard[24] = np.zeros((8, 8), dtype=np.int8)
+                bitboard[24] = np.zeros((8, 8), dtype=np.float32)
             else:
-                bitboard[24] = np.ones((8, 8), dtype=np.int8)
+                bitboard[24] = np.ones((8, 8), dtype=np.float32)
 
             # DEBUG 
             game_status = {
@@ -118,23 +126,23 @@ def process_pgn(pgn_data_array):
 
             # White king's side
             if bool(board.castling_rights & chess.BB_H1): 
-                bitboard[12] = np.ones((8, 8), dtype=np.int8)
+                bitboard[12] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["white_ks_cright"] = True
 
             if bool(board.castling_rights & chess.BB_H1) and check_empty_squares(board, "f1", "g1"):
-                bitboard[13] = np.ones((8, 8), dtype=np.int8)
+                bitboard[13] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["white_ks_cavail"] = True
             
             # White queen's side
             if bool(board.castling_rights & chess.BB_A1): 
-                bitboard[14] = np.ones((8, 8), dtype=np.int8)
+                bitboard[14] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["white_qs_cright"] = True
 
             if bool(board.castling_rights & chess.BB_A1) and check_empty_squares(board, "b1", "c1", "d1"):
-                bitboard[13] = np.ones((8, 8), dtype=np.int8)
+                bitboard[13] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["white_qs_cavail"] = True
 
@@ -142,23 +150,23 @@ def process_pgn(pgn_data_array):
 
             # Black king's side
             if bool(board.castling_rights & chess.BB_H8): 
-                bitboard[16] = np.ones((8, 8), dtype=np.int8)
+                bitboard[16] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["black_ks_cright"] = True
 
             if bool(board.castling_rights & chess.BB_H8) and check_empty_squares(board, "f8", "g8"):
-                bitboard[17] = np.ones((8, 8), dtype=np.int8)
+                bitboard[17] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["black_ks_cavail"] = True
 
             # Black queen's side
             if bool(board.castling_rights & chess.BB_A8): 
-                bitboard[18] = np.ones((8, 8), dtype=np.int8)
+                bitboard[18] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["black_qs_cright"] = True
 
             if bool(board.castling_rights & chess.BB_A8) and check_empty_squares(board, "b8", "c8", "d8"):
-                bitboard[19] = np.ones((8, 8), dtype=np.int8)
+                bitboard[19] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["black_qs_cavail"] = True
 
@@ -194,35 +202,71 @@ def process_pgn(pgn_data_array):
 #    ---------------------------------------------------------
 
 # Essentially we are passing around a data input file along with it's pointer, which
-# basically points to the last pgn accessed. I thought it'd be a good idea to put them
+# basically points to the last pgn game accessed. I thought it'd be a good idea to put them
 # together in a single object along with their methods. Probably more clean and efficient (?)
 class PGNMatter:
-    file_name = ""
-    file_pointer = 0
+    # we'll be essentially reading folders with game data
+    # this class makes it very easy to access all the data, you essentially just keep reading
+    # and the class abstracts all the backend work done to switch files and keep track of the
+    # data that's being read
+    files = []
+    input_stream = "" # initial path given by user
+    file_name = "" # points to the current file
+    file_pointer = 0 # points to the current file index
+    
     pgn_pointer = 0
 
-    def __init__(self, input_file, pgn_pointer = 0):
-        self.file_name = input_file
+    # Parameters: File/Folder Name, True if folder, precounted position of pgn if needed
+    def __init__(self, input_stream, folder = False, pgn_pointer = 0):
+        self.input_stream = input_stream
+        self.file_name = input_stream
+        
+        if folder == False:
+            try:
+                self.file_pointer = open(self.file_name, 'r', encoding="utf-8")
+            except Exception as e:
+                print("[!!!] Error: Can't read input file, setting base paramenters to NULL. Reinitialize!")
+                print("[Python Error]:", e)
 
-        try:
-            self.file_pointer = open(file_name, 'r', encoding="utf-8")
-        except Exception as e:
-            print("[!!!] Error: Can't read input file, setting base paramenters to NULL. Reinitialize!")
-            print("[Python Error]:", e)
+            self.pgn_pointer = pgn_pointer
+        else:
+            for filename in os.listdir(self.input_stream):
+                if self.input_stream[len(input_stream) - 1] != "/":
+                    self.input_stream = self.input_stream + "/"
+                self.files.append(self.input_stream + filename)
+            
+            self.file_name = self.files[self.file_pointer]
+            try:
+                self.file_pointer = open(self.file_name, 'r', encoding="utf-8")
+            except Exception as e:
+                print("[!!!] Error: Can't read input file, setting base paramenters to NULL. Reinitialize!")
+                print("[Python Error]:", e)
+            self.pgn_count = 0
 
-        self.pgn_pointer = pgn_pointer
 
     def read(self, quantity = 1024):
-        if file_pointer.closed():
+        if self.file_pointer.closed:
             print("[!!!] Error: File pointer closed! What are you reading?")
             return 0
 
         pgn_count = 0
         return_buffer = []
         while pgn_count < quantity:
-            line = file_pointer.readline()
+            line = self.file_pointer.readline()
+
+            if line == '':
+                self.file_pointer += 1
+                if self.file_pointer < len(files):
+                    self.file_pointer.close()
+                    self.file_name = files[file_pointer]
+                    self.file_pointer = open(file_name, 'r', encoding="utf-8")
+                    print(f"[***] Data file ended. Shifting to next file!!! (Next file: {file_name})")
+                    self.pgn_pointer = 0
+                else:
+                    break
+
             # I'm basically building this to extract only the move lines, and they always start with
-            # 1. cause they're all game moves and start with 1st move :P
+            # 1. cause they're all game moves and start with the 1st move :P
             # I'm ignoring the game information for now
             if line[0] == '1':
                 return_buffer.append(line)
@@ -230,92 +274,39 @@ class PGNMatter:
         self.pgn_pointer += quantity
         return return_buffer
 
-    def conv_to_torchtensor(self, data):
-        pass
-        
+    def conv_to_torchtensor(self, bitboards):
+        converted_bitboards = []
+        for board in bitboards:
+            converted_board = torch.from_numpy(board)
+            converted_bitboards.append(converted_board)
+        return converted_bitboards
 
+        
+'''
     def __del__(self):
         # ensuring that the underlying system stream closes safely when the object is destroyed
         if hasattr(self, 'file_pointer') and not self.file_pointer.closed:
             self.file_pointer.close()
-
+'''
 
 def alms(pgn_data, quantity = 1024):
-    raw_data = pgn_data.read(pgn_data, quantity)
-    tensor_data = pgn_data.conv_to_torchtensor(raw_data)
-    return tensor_data
+    raw_data = pgn_data.read(quantity)
+    pgn_bitboards = process_pgn(raw_data)
+    tensor_data = pgn_data.conv_to_torchtensor(pgn_bitboards)
+    one_big_tensor = torch.stack(tensor_data, dim=0)
+    return one_big_tensor
     
-
-''' 
-
---- Bad deprecated code I wrote a long time ago ---
-    
-def flush_pgn(output_file, pgn_bitboards):
-    
-    with open(output_file, "ab") as ofile:
-        for bitboard in pgn_bitboards:
-            flat_board = bitboard.flatten()
-            packed_board = np.packbits(flat_board)
-            ofile.write(packed_board.tobytes())
 
 def main():
     if len(sys.argv) <= 1:
         print("[!] Expected file name!")
         return
     
-    filename = sys.argv[1]
-    output_file = "output.arr"
-
-    if len(sys.argv) <= 2:
-        print("[*] Output file name not provided. Defaulted to output.arr")
-    else:
-        output_file = sys.argv[2]
-
-    option = input("[!] Warning, output file is being cleared... Continue? [y/n] ")
-    option = option.strip().lower()
-    if option in ("y", "yes"):
-        open(output_file, "w").close()
-        print("\n[*] Cleared output file...")
-
-    elif option in ("n", "no"):
-        print("[!] Exiting! Specify a fresh output file!")
-        return
-
-    else:
-        print("[!] Invalid input. Quitting!")
-        return 
-
-    print(f"[*] Parsing {filename} and outputting to {output_file}")
-
-    with open(filename, 'r') as source:
-
-        pgn_pages = 100
-        for i in range(pgn_pages):
-            pgn_limit = 1000
-            pgn_count = 0
-            pgn_data_array = []
-
-            print(f"\n[*] PGN Page {i+1}/{pgn_pages} being processed. Each page is of size {pgn_limit} games.\n")
-
-            while pgn_count <= pgn_limit:
-                line = source.readline()
-                
-                if line[0] == '1':
-                    pgn_data_array.append(line)
-                    pgn_count += 1
-                else:
-                    continue
-
-                if pgn_count == pgn_limit:
-                    print(f"[*] Buffer PGN load limit reached ({pgn_count})")
-                    print(f"[*] Processing and flushing the loaded pgn Data...")
-                    pgn_bitboards = process_pgn(pgn_data_array)
-                    pgn_data_array.clear()
-                    flush_pgn(output_file, pgn_bitboards)
-                    pgn_bitboards.clear()
+    folder = sys.argv[1]
     
-    print(f"\n[**] Flushed the data to {output_file}! Total data flushed: {pgn_limit * pgn_pages} games.")
+    pgn_data = PGNMatter(folder, True)
+    conv_data = alms(pgn_data)
+    print(conv_data[0].size())
 
 if __name__ == "__main__":
     main()
-'''
