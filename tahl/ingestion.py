@@ -225,7 +225,7 @@ class PGNMatter:
             try:
                 self.file_pointer = open(self.file_name, 'r', encoding="utf-8")
             except Exception as e:
-                print("[!!!] Error: Can't read input file, setting base paramenters to NULL. Reinitialize!")
+                print("Error: Can't read input file, setting base paramenters to NULL. Reinitialize!")
                 print("[Python Error]:", e)
 
             self.pgn_pointer = pgn_pointer
@@ -239,14 +239,14 @@ class PGNMatter:
             try:
                 self.file_pointer = open(self.file_name, 'r', encoding="utf-8")
             except Exception as e:
-                print("[!!!] Error: Can't read input file, setting base paramenters to NULL. Reinitialize!")
+                print("Error: Can't read input file, setting base paramenters to NULL. Reinitialize!")
                 print("[Python Error]:", e)
             self.pgn_count = 0
 
 
     def read(self, quantity = 1024):
         if self.file_pointer.closed:
-            print("[!!!] Error: File pointer closed! What are you reading?")
+            print("Error: File pointer closed! What are you reading?")
             return 0
 
         pgn_count = 0
@@ -260,7 +260,7 @@ class PGNMatter:
                     self.file_pointer.close()
                     self.file_name = files[file_pointer]
                     self.file_pointer = open(file_name, 'r', encoding="utf-8")
-                    print(f"[***] Data file ended. Shifting to next file!!! (Next file: {file_name})")
+                    print(f"Data file ended. Shifting to next file!!! (Next file: {file_name})")
                     self.pgn_pointer = 0
                 else:
                     break
@@ -299,7 +299,7 @@ def alms(pgn_data, quantity = 1024):
 
 def main():
     if len(sys.argv) <= 1:
-        print("[!] Expected file name!")
+        print("Expected file name!")
         return
     
     folder = sys.argv[1]
