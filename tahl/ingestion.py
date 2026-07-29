@@ -111,6 +111,9 @@ def process_pgn(pgn_data_array):
                 "black_qs_cavail": False
             }
             
+            # *************************************************
+            # !!! THIS IS THE CODE THAT UPDATES PIECE POSITIONS
+            # *************************************************
             # First six slices are for white piece info in order of pawn, rook, knight, bishop, king and queen
             # Next six slices act as the black piece info in the same order.
             for i in range(len(piece_types)):
@@ -213,6 +216,7 @@ class PGNMatter:
     input_stream = "" # initial path given by user
     file_name = "" # points to the current file
     file_pointer = 0 # points to the current file index
+    is_folder = False
     
     pgn_pointer = 0
 
@@ -220,6 +224,7 @@ class PGNMatter:
     def __init__(self, input_stream, folder = False, pgn_pointer = 0):
         self.input_stream = input_stream
         self.file_name = input_stream
+        self.is_folder = folder
         
         if folder == False:
             try:
@@ -254,7 +259,7 @@ class PGNMatter:
         while pgn_count < quantity:
             line = self.file_pointer.readline()
 
-            if line == '':
+            if self.is_folder and line == '':
                 self.file_pointer += 1
                 if self.file_pointer < len(files):
                     self.file_pointer.close()
@@ -271,6 +276,7 @@ class PGNMatter:
             if line[0] == '1':
                 return_buffer.append(line)
                 pgn_count += 1
+
         self.pgn_pointer += quantity
         return return_buffer
 
@@ -288,13 +294,26 @@ class PGNMatter:
         if hasattr(self, 'file_pointer') and not self.file_pointer.closed:
             self.file_pointer.close()
 '''
+def pgn_to_movelist(pgn_data):
+    massive_array = []
+    for element in pgn_data:
+        pgn_array = element.split(' ')
+        pgn_array_2 = []
+        for i in pgn_array:
+            if i[0] not in "123456789":
+                pgn_array_2.append(i)
+        # EACH GAME HAS ITS OWN ARRAY, this makes it easier for us to know
+        # when the game starts and ends.
+        massive_array.append(pgn_array_2)
+    return massive_array
 
 def alms(pgn_data, quantity = 1024):
     raw_data = pgn_data.read(quantity)
+    pgn_array = pgn_to_movelist(raw_data)
     pgn_bitboards = process_pgn(raw_data)
     tensor_data = pgn_data.conv_to_torchtensor(pgn_bitboards)
     one_big_tensor = torch.stack(tensor_data, dim=0)
-    return one_big_tensor
+    return one_big_tensor, pgn_array
     
 
 def main():

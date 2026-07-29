@@ -21,15 +21,15 @@ def pipeline():
         pgn_data = PGNMatter(F, False)
     
 	# DATA CONVERSION
-    conv_data = alms(pgn_data)
+    conv_data, pgn_array = alms(pgn_data, quantity = 50)
 
     # NEURAL NETWORK TRAINING
     brain = FFNN(input_dim, output_dim, [14*8*8, 64*28, 64*56])
 
-    Y = mimic_output(conv_data)
+    Y = mimic_output(conv_data, pgn_array)
 
-    trained_brain = brain.training(conv_data, Y, epochs, batch_size, lr, train_ratio)
-    store_brain(trained_brain, storagefile_location)
+    # trained_brain = brain.training(conv_data, Y, epochs, batch_size, lr, train_ratio)
+    # store_brain(trained_brain, storagefile_location)
 
 if __name__ == "__main__":
     pipeline()
