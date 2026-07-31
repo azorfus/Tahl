@@ -22,51 +22,71 @@ def move_to_index(from_sq, to_sq, promotion=None):
 
     return from_sq * 73 + plane
 
-def fetch_move(bitboard, move, color):
-    piece_type = ""
-    to_sq = ""
-    from_sq = ()
+# This function finds the moves made in the bitboards by
+# taking their respective plane differences and checking for
+# displacements in them
+def fetch_move(from_board, to_board):
+    # fbunwound -> from_board_unwound, tbunwound -> to_board_unwound
+    fbunwound = torch.unbind(from_board, dim=0)
+    tbunwound = torch.unbind(to_board, dim=0)
+    identifiers = []
 
-    # CONVERTING THE LAYERED BITBOARD DESIGN INTO AN ARRAY OF BITBOARD LAYERS
-    unwoundboard = torch.unbind(bitboard, dim=0)
+    # This gets appended with the strings: "castling, white", "castling, black",
+    #  "enpassant", "pawn promotion" or remains None depending on the move that's happening
+    specialinfo = None
 
-    if move[0] in "KQBNR":
-        piece_type = move[0]
-        to_sq = move[1:]
-    else:
-        piece_type = "P"
-        to_sq = move
+    for i in range(0, 28):
+        # tensor.any() returns True if the tensor has any value that's not 0
+        # it returns False if the tensor is zeroed out
+        if (fbunwound[i] - tbunwound[i]).any():
+            identifiers.append(i)
+
+    # identifiers are basically the plane numbers where changes have happened
+    # if a piece moved then that corresponding plane number would be an identifier
+    # if a piece captured another piece then the numbers of the two corresponding planes
+    # would be identifiers 
+    for i in identifiers:
+        if i < 12:
+            diff = tbunwound[i] - fbunwound[i]
+            # if a piece is moved then the "to" square would be -1 since we're
+            # subtracting 0 (old square) with the 1 (new square)
+            from_y, from_x = torch.where(diff == -1)
+            # Also if a piece is captured then the "to" coordinates would
+            # just be 0, since no piece has moved into them on that corresponding plane
+            to_y, to_x = torch.where(diff == 1)
+        elif i in [12, 13, 14, 15]:
+            # white castling
+            specialinfo = "castling, white"
+        elif i in [16, 17, 18, 19]:
+            # black castling
+            specialinfo = "castling, black"
+        elif i in [20, 22]:
+            # Note to self: Check if we really do need enpassant origin planes
+            # en-passant
+            specialinfo = "enpassant"
+
+    from_sq = (from_x, from_y)
+    to_sq = (to_x, to_y)
+
+    return from_sq, to_sq
+
+def coordtotensor(coords, specialinfo):
     
-    if piece_type == "K":
-        if color == "white":
-            y, x = torch.where(unwoundboard[4] == 1)
-            from_sq = (x.item(), y.item())
-    else if piece_type == "Q":
-        if color == "white":
-            y, x = torch.where(unwoundboard[5] == 1)
-            from_sq = (x.item(), y.item())
-    else if piece_type == "K":
-        if color == "black":
-            y, x = torch.where(unwoundboard[10] == 1)
-            from_sq = (x.item(), y.item())
-    else if piece_type == "Q":
-        if color == "black":
-            y, x = torch.where(unwoundboard[11] == 1)
-            from_sq = (x.item(), y.item())
 
-    # PROCESSING to_sq
-    to_sq_int = (int(ord(to_sq[0] - 97)), int(to_sq[1]) - 1)
-
-    return from_sq, to_sq_int
-
-    
-
-from misc import print_bitboards
+from misc import *
 def mimic_output(fdtensor, pgn_array):
     # We split the massive 4d tensors into a python list of 3d tensors (bitboards)
     # for the convenient processing of each of them into their corresponding Y tensors
     tdtensor = torch.unbind(fdtensor, dim=0)
-    fetch_move(tdtensor[0], "Ke3", "white")
+    i = 0
+    while True:
+        values = fetch_move(tdtensor[i], tdtensor[i + 1])
+        print(values)
+        i = i + 1
+        if i + 1 >= len(tdtensor):
+            break
+        if i >= 25:
+            break
 
 
     
