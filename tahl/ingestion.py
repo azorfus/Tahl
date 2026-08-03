@@ -42,8 +42,6 @@ board_map = {
 
 # Last 4 slices are for buffered storage of previous positions (28)
 
-numpy_init_bitboard = np.zeros((28, 8, 8), dtype=np.float32)
-
 #    ---------------------------------------------------------
 #    This is the start of the code block that does the pgn parsing
 #    ---------------------------------------------------------
@@ -85,6 +83,8 @@ def process_pgn(pgn_data_array):
     
     for each_pgn in pgn_data_array:
         game = chess.pgn.read_game(io.StringIO(each_pgn))
+        assert(game is not None)
+
         board = game.board()
 
         for move in game.mainline_moves():
@@ -118,82 +118,79 @@ def process_pgn(pgn_data_array):
             # Next six slices act as the black piece info in the same order.
             for i in range(len(piece_types)):
                 for sq in board.pieces(piece_types[i], chess.WHITE):
-                    bitboard[i][sq // 8][sq % 8] = 1
+                    bitboard[i][sq % 8][sq // 8] = 1
 
                 for sq in board.pieces(piece_types[i], chess.BLACK):
-                    bitboard[i + 6][sq // 8][sq % 8] = 1
+                    bitboard[i + 6][sq % 8][sq // 8] = 1
 
             # Update castling information
 
             # *** WHITE ***
 
             # White king's side
-            if bool(board.castling_rights & chess.BB_H1): 
+            if board.has_kingside_castling_rights(chess.WHITE): 
                 bitboard[12] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["white_ks_cright"] = True
 
-            if bool(board.castling_rights & chess.BB_H1) and check_empty_squares(board, "f1", "g1"):
+            if chess.Move.from_uci("e1g1") in board.legal_moves:
                 bitboard[13] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["white_ks_cavail"] = True
             
             # White queen's side
-            if bool(board.castling_rights & chess.BB_A1): 
+            if board.has_queenside_castling_rights(chess.WHITE): 
                 bitboard[14] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["white_qs_cright"] = True
 
-            if bool(board.castling_rights & chess.BB_A1) and check_empty_squares(board, "b1", "c1", "d1"):
-                bitboard[13] = np.ones((8, 8), dtype=np.float32)
+            if chess.Move.from_uci("e1c1") in board.legal_moves:
+                bitboard[15] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["white_qs_cavail"] = True
 
             # *** BLACK ***
 
             # Black king's side
-            if bool(board.castling_rights & chess.BB_H8): 
+            if board.has_kingside_castling_rights(chess.BLACK): 
                 bitboard[16] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["black_ks_cright"] = True
 
-            if bool(board.castling_rights & chess.BB_H8) and check_empty_squares(board, "f8", "g8"):
+            if chess.Move.from_uci("e8g8") in board.legal_moves:
                 bitboard[17] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["black_ks_cavail"] = True
 
             # Black queen's side
-            if bool(board.castling_rights & chess.BB_A8): 
+            if board.has_queenside_castling_rights(chess.BLACK): 
                 bitboard[18] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["black_qs_cright"] = True
 
-            if bool(board.castling_rights & chess.BB_A8) and check_empty_squares(board, "b8", "c8", "d8"):
+            if chess.Move.from_uci("e8c8") in board.legal_moves:
                 bitboard[19] = np.ones((8, 8), dtype=np.float32)
 
                 game_status["black_qs_cavail"] = True
 
             # Checking and updating en passant status slices
             if board.has_legal_en_passant():
-                target_sq = chess.square_name(board.ep_square)
-                target_coord = board_map[target_sq]
+                ep_square = board.ep_square
+                assert(ep_square is not None)
 
                 # target en passant square marking
                 if board.turn == chess.WHITE:
-                    bitboard[20][target_coord[0]][target_coord[1]] = 1
+                    bitboard[20][ep_square % 8][ep_square // 8] = 1
                 elif board.turn == chess.BLACK:
-                    bitboard[22][target_coord[0]][target_coord[1]] = 1
+                    bitboard[22][ep_square % 8][ep_square // 8] = 1
 
                 # origin of en passant
                 for lmove in board.legal_moves:
-                    if chess.square_name(lmove.to_square) == target_sq:
-                        source_sq = chess.square_name(lmove.from_square)
-                        source_coord = board_map[source_sq]
-
+                    if lmove.to_square == ep_square:
                         if board.turn == chess.WHITE:
-                            bitboard[21][source_coord[0]][source_coord[1]] = 1
+                            bitboard[21][lmove.from_square % 8][lmove.from_square // 8] = 1
                         elif board.turn == chess.BLACK:
-                            bitboard[23][source_coord[0]][source_coord[1]] = 1
+                            bitboard[23][lmove.from_square % 8][lmove.from_square // 8] = 1
 
             board.push(move)
             pgn_bitboards.append(bitboard)
