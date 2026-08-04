@@ -209,72 +209,63 @@ class PGNMatter:
     # this class makes it very easy to access all the data, you essentially just keep reading
     # and the class abstracts all the backend work done to switch files and keep track of the
     # data that's being read
-    files = []
-    input_stream = "" # initial path given by user
-    file_name = "" # points to the current file
-    file_pointer = 0 # points to the current file index
-    is_folder = False
     
-    pgn_pointer = 0
+    '''
+    Please DO NOT DECLARE class attributes outside __init__() like this, doing this would make it so that
+    every instance of this class would share these attributes, we do not want that
+    '''
 
     # Parameters: File/Folder Name, True if folder, precounted position of pgn if needed
-    def __init__(self, input_stream, folder = False, pgn_pointer = 0):
+    def __init__(self, input_stream : str, folder = False, pgn_pointer = 0):
         self.input_stream = input_stream
         self.file_name = input_stream
         self.is_folder = folder
+        self.files = []
+        self.file_pointer = None
         
-        if folder == False:
-            try:
-                self.file_pointer = open(self.file_name, 'r', encoding="utf-8")
-            except Exception as e:
-                print("Error: Can't read input file, setting base paramenters to NULL. Reinitialize!")
-                print("[Python Error]:", e)
-
+        if not folder:
+            # This is an easier abstraction to handle when opening and reading files in the read() function
+            self.files.append(self.input_stream)
             self.pgn_pointer = pgn_pointer
         else:
+            if self.input_stream[len(input_stream) - 1] != "/":
+                self.input_stream = self.input_stream + "/"
+
             for filename in os.listdir(self.input_stream):
-                if self.input_stream[len(input_stream) - 1] != "/":
-                    self.input_stream = self.input_stream + "/"
                 self.files.append(self.input_stream + filename)
             
-            self.file_name = self.files[self.file_pointer]
-            try:
-                self.file_pointer = open(self.file_name, 'r', encoding="utf-8")
-            except Exception as e:
-                print("Error: Can't read input file, setting base paramenters to NULL. Reinitialize!")
-                print("[Python Error]:", e)
-            self.pgn_count = 0
+            self.file_name = self.files[self.pgn_pointer]
+            self.pgn_pointer = 0
 
 
     def read(self, quantity = 1024):
-        if self.file_pointer.closed:
-            print("Error: File pointer closed! What are you reading?")
-            return 0
-
         pgn_count = 0
-        return_buffer = []
-        while pgn_count < quantity:
-            line = self.file_pointer.readline()
+        return_buffer: list[list[str]] = []
 
-            if self.is_folder and line == '':
-                self.file_pointer += 1
-                if self.file_pointer < len(files):
-                    self.file_pointer.close()
-                    self.file_name = files[file_pointer]
-                    self.file_pointer = open(file_name, 'r', encoding="utf-8")
-                    print(f"Data file ended. Shifting to next file!!! (Next file: {file_name})")
-                    self.pgn_pointer = 0
-                else:
-                    break
+        for file_path in self.files:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as self.file_pointer:
+                    while pgn_count < quantity:
+                        game = chess.pgn.read_game(self.file_pointer)
 
-            # I'm basically building this to extract only the move lines, and they always start with
-            # 1. cause they're all game moves and start with the 1st move :P
-            # I'm ignoring the game information for now
-            if line[0] == '1':
-                return_buffer.append(line)
-                pgn_count += 1
+                        if not game:
+                            break
 
-        self.pgn_pointer += quantity
+                        pgn_count += 1
+
+                        # This returns uci format strings (e2e4) which is exactly what we need for target encoding and decoding
+                        # later on, use move.san() if you want the traditional string format (e4, Nf3 etc)
+                        moves_list = [move.uci() for move in game.mainline_moves()]
+
+                        return_buffer.append(moves_list)
+
+                    if pgn_count >= quantity:
+                        break
+
+            except Exception as e:
+                print(f'[ERROR] Failed to read input files!')
+                print(f'[ERROR] {e}')
+
         return return_buffer
 
     def conv_to_torchtensor(self, bitboards):
@@ -304,7 +295,7 @@ def pgn_to_movelist(pgn_data):
         massive_array.append(pgn_array_2)
     return massive_array
 
-def alms(pgn_data, quantity = 1024):
+def alms(pgn_data: PGNMatter, quantity = 1024):
     raw_data = pgn_data.read(quantity)
     pgn_array = pgn_to_movelist(raw_data)
     pgn_bitboards = process_pgn(raw_data)
