@@ -74,7 +74,7 @@ def print_castling_status(gs):
 # PGN BITBOARD -> NUMPY ARRAY of size 28x8x8, datatype = float32
 # why 32 bit float for 0s and 1s? because easier to convert to float tensors in torch since
 # neural nets need float inputs for calculation (weights and biases are floats bruh)
-def process_pgn(pgn_data_array):
+def process_pgn(pgn_data_array : list[str]) -> list[np.ndarray]:
 
     piece_types = [chess.PAWN, chess.ROOK, chess.KNIGHT,
                    chess.BISHOP, chess.KING, chess.QUEEN]
@@ -238,7 +238,7 @@ class PGNMatter:
             self.pgn_pointer = 0
 
 
-    def read(self, quantity = 1024):
+    def read(self, quantity = 1024) -> list[list[str]]:
         pgn_count = 0
         return_buffer: list[list[str]] = []
 
@@ -296,7 +296,7 @@ def pgn_to_movelist(pgn_data):
     return massive_array
 
 def alms(pgn_data: PGNMatter, quantity = 1024):
-    raw_data = pgn_data.read(quantity)
+    raw_data = pgn_data.read(quantity) # list[list[str]] where each str is a move in UCI notation (e2e4, g1f3 etc)
     pgn_array = pgn_to_movelist(raw_data)
     pgn_bitboards = process_pgn(raw_data)
     tensor_data = pgn_data.conv_to_torchtensor(pgn_bitboards)
