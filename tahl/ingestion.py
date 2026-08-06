@@ -74,128 +74,128 @@ def print_castling_status(gs):
 # PGN BITBOARD -> NUMPY ARRAY of size 28x8x8, datatype = float32
 # why 32 bit float for 0s and 1s? because easier to convert to float tensors in torch since
 # neural nets need float inputs for calculation (weights and biases are floats bruh)
-def process_pgn(pgn_data_array : list[str]) -> list[np.ndarray]:
+def process_pgn(pgn_data : str) -> (list[torch.Tensor], list[str]):
 
     piece_types = [chess.PAWN, chess.ROOK, chess.KNIGHT,
                    chess.BISHOP, chess.KING, chess.QUEEN]
 
-    pgn_bitboards = []
+    pgn_layers: list[np.ndarray] = []
+    movelist: list[list[str]] = []
     
-    for each_pgn in pgn_data_array:
-        game = chess.pgn.read_game(io.StringIO(each_pgn))
-        assert(game is not None)
+    game = chess.pgn.read_game(io.StringIO(pgn_data))
+    assert(game is not None)
 
-        board = game.board()
+    board = game.board()
 
-        for move in game.mainline_moves():
+    for move in game.mainline_moves():
+        bitboard = np.zeros((28, 8, 8), dtype=np.float32)
+
+        if board.turn == chess.WHITE:
+            bitboard[24] = np.zeros((8, 8), dtype=np.float32)
+        else:
+            bitboard[24] = np.ones((8, 8), dtype=np.float32)
+
+        # DEBUG 
+        game_status = {
+            "white_ks_cright": False,
+            "white_ks_cavail": False,
             
-            bitboard = np.zeros((28, 8, 8), dtype=np.float32)
+            "white_qs_cright": False,
+            "white_qs_cavail": False,
 
+            "black_ks_cright": False,
+            "black_ks_cavail": False,
+
+            "black_qs_cright": False,
+            "black_qs_cavail": False
+        }
+        
+        # *************************************************
+        # !!! THIS IS THE CODE THAT UPDATES PIECE POSITIONS
+        # *************************************************
+        # First six slices are for white piece info in order of pawn, rook, knight, bishop, king and queen
+        # Next six slices act as the black piece info in the same order.
+        for i in range(len(piece_types)):
+            for sq in board.pieces(piece_types[i], chess.WHITE):
+                bitboard[i][sq % 8][sq // 8] = 1
+
+            for sq in board.pieces(piece_types[i], chess.BLACK):
+                bitboard[i + 6][sq % 8][sq // 8] = 1
+
+        # Update castling information
+
+        # *** WHITE ***
+
+        # White king's side
+        if board.has_kingside_castling_rights(chess.WHITE): 
+            bitboard[12] = np.ones((8, 8), dtype=np.float32)
+
+            game_status["white_ks_cright"] = True
+
+        if chess.Move.from_uci("e1g1") in board.legal_moves:
+            bitboard[13] = np.ones((8, 8), dtype=np.float32)
+
+            game_status["white_ks_cavail"] = True
+        
+        # White queen's side
+        if board.has_queenside_castling_rights(chess.WHITE): 
+            bitboard[14] = np.ones((8, 8), dtype=np.float32)
+
+            game_status["white_qs_cright"] = True
+
+        if chess.Move.from_uci("e1c1") in board.legal_moves:
+            bitboard[15] = np.ones((8, 8), dtype=np.float32)
+
+            game_status["white_qs_cavail"] = True
+
+        # *** BLACK ***
+
+        # Black king's side
+        if board.has_kingside_castling_rights(chess.BLACK): 
+            bitboard[16] = np.ones((8, 8), dtype=np.float32)
+
+            game_status["black_ks_cright"] = True
+
+        if chess.Move.from_uci("e8g8") in board.legal_moves:
+            bitboard[17] = np.ones((8, 8), dtype=np.float32)
+
+            game_status["black_ks_cavail"] = True
+
+        # Black queen's side
+        if board.has_queenside_castling_rights(chess.BLACK): 
+            bitboard[18] = np.ones((8, 8), dtype=np.float32)
+
+            game_status["black_qs_cright"] = True
+
+        if chess.Move.from_uci("e8c8") in board.legal_moves:
+            bitboard[19] = np.ones((8, 8), dtype=np.float32)
+
+            game_status["black_qs_cavail"] = True
+
+        # Checking and updating en passant status slices
+        if board.has_legal_en_passant():
+            ep_square = board.ep_square
+            assert(ep_square is not None)
+
+            # target en passant square marking
             if board.turn == chess.WHITE:
-                bitboard[24] = np.zeros((8, 8), dtype=np.float32)
-            else:
-                bitboard[24] = np.ones((8, 8), dtype=np.float32)
+                bitboard[20][ep_square % 8][ep_square // 8] = 1
+            elif board.turn == chess.BLACK:
+                bitboard[22][ep_square % 8][ep_square // 8] = 1
 
-            # DEBUG 
-            game_status = {
-                "white_ks_cright": False,
-                "white_ks_cavail": False,
-                
-                "white_qs_cright": False,
-                "white_qs_cavail": False,
+            # origin of en passant
+            for lmove in board.legal_moves:
+                if lmove.to_square == ep_square:
+                    if board.turn == chess.WHITE:
+                        bitboard[21][lmove.from_square % 8][lmove.from_square // 8] = 1
+                    elif board.turn == chess.BLACK:
+                        bitboard[23][lmove.from_square % 8][lmove.from_square // 8] = 1
 
-                "black_ks_cright": False,
-                "black_ks_cavail": False,
+        pgn_layers.append(torch.from_numpy(bitboard))
+        movelist.append(move.uci())
+        board.push(move)
 
-                "black_qs_cright": False,
-                "black_qs_cavail": False
-            }
-            
-            # *************************************************
-            # !!! THIS IS THE CODE THAT UPDATES PIECE POSITIONS
-            # *************************************************
-            # First six slices are for white piece info in order of pawn, rook, knight, bishop, king and queen
-            # Next six slices act as the black piece info in the same order.
-            for i in range(len(piece_types)):
-                for sq in board.pieces(piece_types[i], chess.WHITE):
-                    bitboard[i][sq % 8][sq // 8] = 1
-
-                for sq in board.pieces(piece_types[i], chess.BLACK):
-                    bitboard[i + 6][sq % 8][sq // 8] = 1
-
-            # Update castling information
-
-            # *** WHITE ***
-
-            # White king's side
-            if board.has_kingside_castling_rights(chess.WHITE): 
-                bitboard[12] = np.ones((8, 8), dtype=np.float32)
-
-                game_status["white_ks_cright"] = True
-
-            if chess.Move.from_uci("e1g1") in board.legal_moves:
-                bitboard[13] = np.ones((8, 8), dtype=np.float32)
-
-                game_status["white_ks_cavail"] = True
-            
-            # White queen's side
-            if board.has_queenside_castling_rights(chess.WHITE): 
-                bitboard[14] = np.ones((8, 8), dtype=np.float32)
-
-                game_status["white_qs_cright"] = True
-
-            if chess.Move.from_uci("e1c1") in board.legal_moves:
-                bitboard[15] = np.ones((8, 8), dtype=np.float32)
-
-                game_status["white_qs_cavail"] = True
-
-            # *** BLACK ***
-
-            # Black king's side
-            if board.has_kingside_castling_rights(chess.BLACK): 
-                bitboard[16] = np.ones((8, 8), dtype=np.float32)
-
-                game_status["black_ks_cright"] = True
-
-            if chess.Move.from_uci("e8g8") in board.legal_moves:
-                bitboard[17] = np.ones((8, 8), dtype=np.float32)
-
-                game_status["black_ks_cavail"] = True
-
-            # Black queen's side
-            if board.has_queenside_castling_rights(chess.BLACK): 
-                bitboard[18] = np.ones((8, 8), dtype=np.float32)
-
-                game_status["black_qs_cright"] = True
-
-            if chess.Move.from_uci("e8c8") in board.legal_moves:
-                bitboard[19] = np.ones((8, 8), dtype=np.float32)
-
-                game_status["black_qs_cavail"] = True
-
-            # Checking and updating en passant status slices
-            if board.has_legal_en_passant():
-                ep_square = board.ep_square
-                assert(ep_square is not None)
-
-                # target en passant square marking
-                if board.turn == chess.WHITE:
-                    bitboard[20][ep_square % 8][ep_square // 8] = 1
-                elif board.turn == chess.BLACK:
-                    bitboard[22][ep_square % 8][ep_square // 8] = 1
-
-                # origin of en passant
-                for lmove in board.legal_moves:
-                    if lmove.to_square == ep_square:
-                        if board.turn == chess.WHITE:
-                            bitboard[21][lmove.from_square % 8][lmove.from_square // 8] = 1
-                        elif board.turn == chess.BLACK:
-                            bitboard[23][lmove.from_square % 8][lmove.from_square // 8] = 1
-
-            board.push(move)
-            pgn_bitboards.append(bitboard)
-
-    return pgn_bitboards
+    return pgn_layers, movelist
 
 #    ---------------------------------------------------------
 #    This is the end of the code block that does the pgn parsing
@@ -211,17 +211,19 @@ class PGNMatter:
     # data that's being read
     
     '''
-    Please DO NOT DECLARE class attributes outside __init__() like this, doing this would make it so that
-    every instance of this class would share these attributes, we do not want that
+    Fun Fact: Declaring variables outside initializer causes them to become static variables
     '''
 
     # Parameters: File/Folder Name, True if folder, precounted position of pgn if needed
     def __init__(self, input_stream : str, folder = False, pgn_pointer = 0):
         self.input_stream = input_stream
+
         self.file_name = input_stream
         self.is_folder = folder
         self.files = []
-        self.file_pointer = None
+
+        self.file_handle = None
+        self.pgn_pointer = 0
         
         if not folder:
             # This is an easier abstraction to handle when opening and reading files in the read() function
@@ -237,44 +239,44 @@ class PGNMatter:
             self.file_name = self.files[self.pgn_pointer]
             self.pgn_pointer = 0
 
-
-    def read(self, quantity = 1024) -> list[list[str]]:
+    # !!! need to make it track the games in the respective files
+    def read(self, quantity = 1024) -> (list[list[torch.Tensor]], list[list[str]]):
         pgn_count = 0
-        return_buffer: list[list[str]] = []
+        return_boardtensors: list[list[torch.Tensor]] = []
+        return_movelists: list[list[str]] = []
 
         for file_path in self.files:
             try:
-                with open(file_path, 'r', encoding='utf-8') as self.file_pointer:
-                    while pgn_count < quantity:
-                        game = chess.pgn.read_game(self.file_pointer)
+                line_count = 0
+                line = "lol"
+                with open(file_path, 'r', encoding='utf-8') as self.file_handle:
+                    if self.pgn_pointer != 0:
+                        print("Reading from previosly read file, line pointer at: ", self.pgn_pointer)
+                    while line != "":
+                        line = self.file_handle.readline()
+                        if line[0] == "1":
 
-                        if not game:
-                            break
+                            # Once the number of pgn strings read exceeds the quantity asked for- break.
+                            # indexing works one off from absolute numbers hence: quantity - 1
+                            if (line_count - self.pgn_pointer) > (quantity - 1):
+                                if self.file_handle.readline() != "":
+                                    self.pgn_pointer = self.pgn_pointer + quantity
+                                break
 
-                        pgn_count += 1
-
-                        # This returns uci format strings (e2e4) which is exactly what we need for target encoding and decoding
-                        # later on, use move.san() if you want the traditional string format (e4, Nf3 etc)
-                        moves_list = [move.uci() for move in game.mainline_moves()]
-
-                        return_buffer.append(moves_list)
-
-                    if pgn_count >= quantity:
-                        break
+                            # Only process the pgn strings that have not been processed before
+                            if (self.pgn_pointer <= line_count):
+                                # Temporarily (?) process_pgn is a separate function for temporary code management
+                                boardarray, movelist = process_pgn(line)
+                                return_boardtensors.append(boardarray)
+                                return_movelists.append(movelist)
+                                
+                            line_count = line_count + 1
 
             except Exception as e:
                 print(f'[ERROR] Failed to read input files!')
                 print(f'[ERROR] {e}')
 
-        return return_buffer
-
-    def conv_to_torchtensor(self, bitboards):
-        converted_bitboards = []
-        for board in bitboards:
-            converted_board = torch.from_numpy(board)
-            converted_bitboards.append(converted_board)
-        return converted_bitboards
-
+        return return_boardtensors, return_movelists
         
 '''
     def __del__(self):
@@ -282,38 +284,26 @@ class PGNMatter:
         if hasattr(self, 'file_pointer') and not self.file_pointer.closed:
             self.file_pointer.close()
 '''
-def pgn_to_movelist(pgn_data):
-    massive_array = []
-    for element in pgn_data:
-        pgn_array = element.split(' ')
-        pgn_array_2 = []
-        for i in pgn_array:
-            if i[0] not in "123456789":
-                pgn_array_2.append(i)
-        # EACH GAME HAS ITS OWN ARRAY, this makes it easier for us to know
-        # when the game starts and ends.
-        massive_array.append(pgn_array_2)
-    return massive_array
-
-def alms(pgn_data: PGNMatter, quantity = 1024):
-    raw_data = pgn_data.read(quantity) # list[list[str]] where each str is a move in UCI notation (e2e4, g1f3 etc)
-    pgn_array = pgn_to_movelist(raw_data)
-    pgn_bitboards = process_pgn(raw_data)
-    tensor_data = pgn_data.conv_to_torchtensor(pgn_bitboards)
-    one_big_tensor = torch.stack(tensor_data, dim=0)
-    return one_big_tensor, pgn_array
-    
-
+from misc import print_bitboards_selective
 def main():
     if len(sys.argv) <= 1:
         print("Expected file name!")
         return
     
     folder = sys.argv[1]
-    
+
     pgn_data = PGNMatter(folder, True)
-    conv_data = alms(pgn_data)
-    print(conv_data[0].size())
+    # boardtensors, movelists = pgn_data.read(50)
+
+    a1, b1 = pgn_data.read(5)
+    a2, b2 = pgn_data.read(5)
+    a3, b3 = pgn_data.read(5)
+    a4, b4 = pgn_data.read(5)
+
+    for i in range(0, len(a3)):
+        for j in range(0, len(a3[i])):
+            print(b3[i][j])
+            print_bitboards(a3[i][j])
 
 if __name__ == "__main__":
     main()
