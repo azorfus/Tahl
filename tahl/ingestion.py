@@ -79,8 +79,8 @@ def process_pgn(pgn_data : str) -> (list[torch.Tensor], list[str]):
     piece_types = [chess.PAWN, chess.ROOK, chess.KNIGHT,
                    chess.BISHOP, chess.KING, chess.QUEEN]
 
-    pgn_layers: list[np.ndarray] = []
-    movelist: list[list[str]] = []
+    pgn_layers: list[torch.Tensor] = []
+    movelist: list[str] = []
     
     game = chess.pgn.read_game(io.StringIO(pgn_data))
     assert(game is not None)
@@ -286,8 +286,9 @@ class PGNMatter:
         if hasattr(self, 'file_pointer') and not self.file_pointer.closed:
             self.file_pointer.close()
 '''
-from misc import print_bitboards_selective
+
 def main():
+    # TESTING CODE
     if len(sys.argv) <= 1:
         print("Expected file name!")
         return
@@ -301,11 +302,6 @@ def main():
     a2, b2 = pgn_data.read(5)
     a3, b3 = pgn_data.read(5)
     a4, b4 = pgn_data.read(5)
-
-    for i in range(0, len(a3)):
-        for j in range(0, len(a3[i])):
-            print(b3[i][j])
-            print_bitboards(a3[i][j])
 
 if __name__ == "__main__":
     main()
