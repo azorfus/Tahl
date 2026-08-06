@@ -247,11 +247,13 @@ class PGNMatter:
 
         for file_path in self.files:
             try:
-                line_count = 0
-                line = "lol"
                 with open(file_path, 'r', encoding='utf-8') as self.file_handle:
                     if self.pgn_pointer != 0:
                         print("Reading from previosly read file, line pointer at: ", self.pgn_pointer)
+
+                    line_count = 0
+                    line = "lol"
+
                     while line != "":
                         line = self.file_handle.readline()
                         if line[0] == "1":
